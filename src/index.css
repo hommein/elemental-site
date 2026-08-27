@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Elemental Aerial Arts design tokens (from santabarbaraaerial.com) */
+  --ea-accent: #cdab94;        /* signature rose-gold tan */
+  --ea-accent-soft: #dec8bb;   /* blush */
+  --ea-brown: #8f705b;         /* mocha */
+  --ea-brown-light: #a78b78;
+  --ea-brown-deep: #4b3d34;    /* espresso */
+  --ea-ink: #151515;
+  --ea-paper: #f7f3f0;         /* warm off-white */
+  --ea-white: #ffffff;
+
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Montserrat", "Open Sans", system-ui, sans-serif;
+
+  --space-1: 0.5rem; --space-2: 1rem; --space-3: 1.5rem;
+  --space-4: 2.5rem; --space-5: 4rem;
+  --radius: 10px;
+  --maxw: 1100px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ea-ink);
+  background: var(--ea-paper);
+  line-height: 1.6;
+}
+h1, h2, h3 { font-family: var(--font-display); color: var(--ea-brown-deep); line-height: 1.2; }
+h1 { font-size: clamp(2rem, 5vw, 3.2rem); }
+h2 { font-size: clamp(1.5rem, 3.5vw, 2.2rem); }
+a { color: var(--ea-brown); }
+.container { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--space-3); }
+.btn {
+  display: inline-block; padding: 0.75rem 1.75rem; border-radius: 999px;
+  background: var(--ea-brown-deep); color: var(--ea-paper); text-decoration: none;
+  font-weight: 600; letter-spacing: 0.04em; border: none; cursor: pointer;
+  transition: background 0.2s;
+}
+.btn:hover { background: var(--ea-brown); }
+.btn--accent { background: var(--ea-accent); color: var(--ea-ink); }
+.btn--accent:hover { background: var(--ea-brown-light); }
+section { padding: var(--space-5) 0; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--space-3); }
+.card { background: var(--ea-white); border: 1px solid var(--ea-accent-soft); border-radius: var(--radius); padding: var(--space-3); }
+.card h3 { margin-top: 0; }
