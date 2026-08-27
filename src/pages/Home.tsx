@@ -2,8 +2,10 @@ export default function Home() {
   return (
     <>
       <section className="hero" style={{
-        background: "linear-gradient(rgba(21,21,21,0.45), rgba(75,61,52,0.55)), url(/hero.png) center/cover",
-        color: "var(--ea-paper)", textAlign: "center", padding: "7rem 1rem",
+        background: "linear-gradient(rgba(21,21,21,0.4), rgba(75,61,52,0.5)), url(/hero.png) center 30%/cover no-repeat",
+        color: "var(--ea-paper)", textAlign: "center",
+        minHeight: "min(74vh, 640px)", display: "flex", flexDirection: "column",
+        justifyContent: "center", alignItems: "center", padding: "3rem 1rem",
       }}>
         <h1 style={{ color: "var(--ea-paper)" }}>Aerial Arts · Dance · Flow</h1>
         <p style={{ maxWidth: 580, margin: "1rem auto 2rem" }}>
@@ -22,15 +24,15 @@ export default function Home() {
           </div>
           <div className="card card--photo">
             <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" />
-            <h3>Acrobatics &amp; Flexibility</h3><p>Handstands, intro to contortion, strength &amp; flexibility training.</p>
+            <h3>Acrobatics &amp; Flexibility</h3><p>Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
           </div>
           <div className="card card--photo">
             <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" />
-            <h3>Dance</h3><p>Ballet, Jazz, Belly, Contemporary, Heels, House &amp; more.</p>
+            <h3>Dance</h3><p>Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
           </div>
           <div className="card card--photo">
             <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" />
-            <h3>Fire &amp; Flow Arts</h3><p>Hoops, fans, rope dart, poi, staff — cross-prop technique &amp; flow theory.</p>
+            <h3>Fire &amp; Flow Arts</h3><p>Hoops, Fans, Rope Dart, Poi, Staff — cross-prop technique &amp; flow theory.</p>
           </div>
         </div>
       </section>
@@ -46,7 +48,7 @@ export default function Home() {
               Group lessons on various apparatuses throughout the week — or book semi-private
               &amp; private lessons around <em>your</em> schedule. Lessons catered to all skill levels.</p>
             <p>Elemental Arts is a shared space with Selah Dance and others.</p>
-            <a className="btn" href="/contact">Contact us with any questions</a>
+            <a className="btn" href="/contact">Contact Us With Any Questions</a>
           </div>
         </div>
       </section>
@@ -56,7 +58,7 @@ export default function Home() {
           <h2>Open Gym</h2>
           <p>Have your own apparatus or a self-led practice? Open studio training time is
             available &amp; encouraged for members and regular students.</p>
-          <a className="btn" href="/classes">See times &amp; how to book</a>
+          <a className="btn" href="/classes">See Times &amp; How to Book</a>
         </div>
         <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" />
       </section>
@@ -68,7 +70,7 @@ export default function Home() {
             Sign up for our weekly email list to stay up to date with aerial and dance offerings,
             events, and studio news.
           </p>
-          <a className="btn btn--accent" href="/contact">Join the email list</a>
+          <a className="btn btn--accent" href="/contact">Join the Email List</a>
         </div>
       </section>
     </>

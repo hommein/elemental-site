@@ -3,8 +3,8 @@
   border-bottom: 1px solid var(--ea-accent-soft);
   position: sticky; top: 0; z-index: 10;
 }
-.header-inner { display: flex; align-items: center; gap: var(--space-3); padding: 0.6rem var(--space-3); }
-.brand img { height: 88px; display: block; }
+.header-inner { display: flex; align-items: center; gap: var(--space-3); padding: 0.9rem var(--space-3); }
+.brand img { height: 58px; display: block; }
 .site-header nav { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-left: auto; }
 .site-header nav a {
   text-decoration: none; color: var(--ea-brown-deep); font-weight: 500;
