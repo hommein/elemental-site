@@ -6,9 +6,9 @@ export default function Home() {
         color: "var(--ea-paper)", textAlign: "center", padding: "7rem 1rem",
       }}>
         <h1 style={{ color: "var(--ea-paper)" }}>Aerial Arts · Dance · Flow</h1>
-        <p style={{ maxWidth: 560, margin: "1rem auto 2rem" }}>
-          An all-inclusive training space in Santa Barbara, CA. Silks, lyra, hammock,
-          straps, acrobatics, flexibility, fire &amp; flow arts, and dance for every level.
+        <p style={{ maxWidth: 580, margin: "1rem auto 2rem" }}>
+          An all-inclusive training space in Santa Barbara, CA — an aerial &amp; dance
+          practice for the Santa Barbara community. Open studio time available &amp; encouraged.
         </p>
         <a className="btn btn--accent" href="/classes">Find Your Flight</a>
       </section>
@@ -16,14 +16,60 @@ export default function Home() {
       <section className="container">
         <h2>Weekly Group Classes &amp; Jams</h2>
         <div className="cards">
-          <div className="card"><h3>Aerial Arts</h3><p>Silks, Lyra, Hammock, Straps &amp; more — all levels welcome.</p></div>
-          <div className="card"><h3>Acrobatics &amp; Flexibility</h3><p>Handstands, intro to contortion, strength &amp; flexibility training.</p></div>
-          <div className="card"><h3>Dance</h3><p>Ballet, Jazz, Belly, Contemporary, Heels, House &amp; more.</p></div>
-          <div className="card"><h3>Fire &amp; Flow Arts</h3><p>Hoops, fans, rope dart, poi, staff — cross-prop technique and flow theory.</p></div>
+          <div className="card card--photo">
+            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" />
+            <h3>Aerial Arts</h3><p>Silks, Lyra, Hammock, Straps &amp; more — all levels welcome.</p>
+          </div>
+          <div className="card card--photo">
+            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" />
+            <h3>Acrobatics &amp; Flexibility</h3><p>Handstands, intro to contortion, strength &amp; flexibility training.</p>
+          </div>
+          <div className="card card--photo">
+            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" />
+            <h3>Dance</h3><p>Ballet, Jazz, Belly, Contemporary, Heels, House &amp; more.</p>
+          </div>
+          <div className="card card--photo">
+            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" />
+            <h3>Fire &amp; Flow Arts</h3><p>Hoops, fans, rope dart, poi, staff — cross-prop technique &amp; flow theory.</p>
+          </div>
         </div>
-        <p style={{ marginTop: "2rem" }}>
-          Group classes, private lessons, and open gym — <a href="/contact">contact us</a> to find the fit for you.
-        </p>
+      </section>
+
+      <section style={{ background: "var(--ea-accent-soft)" }}>
+        <div className="container split">
+          <img src="/photos/sunset.jpg" alt="Sunset aerial performance" loading="lazy" />
+          <div>
+            <h2>Dance With Us!</h2>
+            <p>Aerial is a dance form, a workout, an avenue for self-expression &amp;
+              self-discovery! Play, explore, challenge yourself and grow.</p>
+            <p>Elemental is a group of supportive friends and we can&apos;t wait to fly with you.
+              Group lessons on various apparatuses throughout the week — or book semi-private
+              &amp; private lessons around <em>your</em> schedule. Lessons catered to all skill levels.</p>
+            <p>Elemental Arts is a shared space with Selah Dance and others.</p>
+            <a className="btn" href="/contact">Contact us with any questions</a>
+          </div>
+        </div>
+      </section>
+
+      <section className="container split split--rev">
+        <div>
+          <h2>Open Gym</h2>
+          <p>Have your own apparatus or a self-led practice? Open studio training time is
+            available &amp; encouraged for members and regular students.</p>
+          <a className="btn" href="/classes">See times &amp; how to book</a>
+        </div>
+        <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" />
+      </section>
+
+      <section style={{ background: "var(--ea-brown-deep)", color: "var(--ea-paper)", textAlign: "center" }}>
+        <div className="container">
+          <h2 style={{ color: "var(--ea-accent)" }}>Stay in the Know</h2>
+          <p style={{ maxWidth: 520, margin: "0.5rem auto 1.5rem" }}>
+            Sign up for our weekly email list to stay up to date with aerial and dance offerings,
+            events, and studio news.
+          </p>
+          <a className="btn btn--accent" href="/contact">Join the email list</a>
+        </div>
       </section>
     </>
   );
