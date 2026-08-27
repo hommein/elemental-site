@@ -16,7 +16,7 @@ export default function Layout() {
       <header className="site-header">
         <div className="container header-inner">
           <NavLink to="/" className="brand">
-            <img src="/logo.png" alt="Santa Barbara Elemental Aerial Arts" />
+            <img src="/logo_cropped.png" alt="Santa Barbara Elemental Aerial Arts" />
           </NavLink>
           <nav>
             {links.map((l) => (
