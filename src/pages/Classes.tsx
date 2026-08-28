@@ -361,6 +361,59 @@ function Tile({ c, onPick, abs, admin }: { c: Cls; onPick: () => void; abs?: boo
     : <button onClick={onPick} className={cls}>{body}</button>;
 }
 
+function AdminRoster({ cls, onChanged }: { cls: Cls; onChanged: () => void }) {
+  type Row = { id: number; name: string; email: string; pay_method?: string };
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [an, setAn] = useState(""); const [ae, setAe] = useState("");
+  const [ap, setAp] = useState("cash"); const [err, setErr] = useState("");
+  const load = () => fetch(`/api/admin/roster?class_id=${cls.id}&date=${cls.date}`)
+    .then(r => r.json()).then(j => setRows(j.signups || []));
+  useEffect(() => { load(); }, []);
+  async function op(body: any) {
+    setErr("");
+    const r = await fetch("/api/admin/roster", { method: "POST",
+      headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) { setErr(j.error || "Failed"); return; }
+    setAn(""); setAe(""); load(); onChanged();
+  }
+  return (
+    <div className="mt-4 border-t pt-3">
+      <h4 className="font-medium text-sm mb-2">Roster (admin)</h4>
+      {rows == null ? <p className="text-xs">Loading…</p> : rows.length === 0
+        ? <p className="text-xs text-ea-espresso/60 mb-2">No signups yet.</p>
+        : <ul className="mb-2 flex flex-col gap-1">
+            {rows.map(r => (
+              <li key={r.id} className="flex items-center gap-2 text-sm">
+                <span className="flex-1 truncate">{r.name} <span className="text-ea-espresso/50 text-xs">{r.email}{r.pay_method ? ` · ${r.pay_method}` : ""}</span></span>
+                <button className="text-red-700 text-xs underline"
+                  onClick={() => confirm(`Remove ${r.name}?`) && op({ op: "remove", id: r.id })}>remove</button>
+              </li>
+            ))}
+          </ul>}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          <input placeholder="Name" value={an} onChange={e => setAn(e.target.value)}
+            className="border border-black/20 rounded px-2 py-1 text-sm w-1/2" />
+          <input placeholder="Email" value={ae} onChange={e => setAe(e.target.value)}
+            className="border border-black/20 rounded px-2 py-1 text-sm w-1/2" />
+        </div>
+        <div className="flex gap-1.5 items-center">
+          <select value={ap} onChange={e => setAp(e.target.value)}
+            className="border border-black/20 rounded px-2 py-1 text-sm flex-1">
+            <option value="cash">cash</option><option value="venmo">venmo</option><option value="pack">pack</option>
+          </select>
+          <button className="btn btn--accent text-sm px-3 py-1" disabled={!an || !ae}
+            onClick={() => op({ op: "add", class_id: cls.id, date: cls.date, name: an, email: ae, pay_method: ap })}>
+            Add person
+          </button>
+        </div>
+        {err && <p className="text-xs text-red-700">{err}</p>}
+      </div>
+    </div>
+  );
+}
+
 function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -368,9 +421,11 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
   const [msg, setMsg] = useState("");
   const [pay, setPay] = useState<"pack" | "venmo" | "cash" | "">("");
   const [packLeft, setPackLeft] = useState<number | null>(null);
+  const [adm, setAdm] = useState(false);
   useEffect(() => {
     me().then(u => {
       if (!u) return;
+      setAdm(!!u.is_admin);
       setName(n => n || u.name); setEmail(e => e || u.email);
       fetch("/api/pack").then(r => r.ok ? r.json() : null).then(j => {
         const left = j?.packs?.reduce((a: number, p: any) => a + p.remaining, 0) ?? 0;
@@ -453,6 +508,7 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
             <p className="text-xs text-ea-espresso/60">12-hour cancellation policy. Pay in studio — cash or Venmo.</p>
           </form>
         )}
+        {adm && <AdminRoster cls={cls} onChanged={() => {}} />}
       </div>
     </div>
   );
