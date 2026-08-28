@@ -182,7 +182,8 @@ function TallyTab() {
           </div>
         );
       })()}
-      {data.people.map((p: any) => {
+      {[...data.people].sort((a: any, b: any) =>
+        (b.classes.length + b.opengym.length) - (a.classes.length + a.opengym.length)).map((p: any) => {
         const taken = p.classes.length + p.opengym.length;
         const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
         const owes = taken > 0 && (!pack || pack.remaining < taken);
@@ -190,28 +191,58 @@ function TallyTab() {
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} of ${pack.size} classes left.` : "") +
           (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
+        const fmtD = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+        const fmtT = (t: string) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
+        const payChip = (m: string | null) => m ?
+          <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " +
+            (m === "pack" ? "bg-ea-gold/40 text-ea-olive" : m === "venmo" ? "bg-sky-100 text-sky-800" : "bg-emerald-100 text-emerald-800")}>{m}</span> : null;
         return (
-          <div key={p.email} className="border border-ea-accent/40 rounded p-3 mb-3">
-            <div className="flex flex-wrap items-baseline gap-x-3">
-              <strong>{p.name}</strong><span className="text-sm opacity-70">{p.email}</span>
-              <span className="ml-auto font-semibold">{taken} class{taken === 1 ? "" : "es"} this {scale}</span>
+          <div key={p.email} className="border border-ea-accent/40 rounded-lg p-4 mb-3 bg-white">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 border-b border-ea-accent/20">
+              <strong className="text-lg">{p.name || p.email}</strong>
+              <span className="text-sm opacity-60">{p.email}</span>
+              <span className="ml-auto flex items-center gap-2">
+                <span className="text-sm font-semibold">{taken} visit{taken === 1 ? "" : "s"} this {scale}</span>
+                <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
+                  {pack ? `pack ${pack.remaining}/${pack.size}` : "no pack"}
+                </span>
+                {owes && <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">owes</span>}
+              </span>
             </div>
-            <div className="text-sm mt-1">
-              {p.classes.map((c: any, i: number) => <div key={i}>{c.date} · {c.time} {c.title}{c.pay_method ? <span className="opacity-60"> · {c.pay_method}</span> : null}</div>)}
-              {p.opengym.map((o: any, i: number) => <div key={i}>{o.date} · {o.time} Open Gym ($10)</div>)}
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 mt-2">
+              <div>
+                <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Activity</div>
+                {taken === 0 && <div className="text-sm opacity-50">No visits this {scale}.</div>}
+                {p.classes.map((c: any, i: number) => (
+                  <div key={"c" + i} className="text-sm flex items-baseline gap-2">
+                    <span className="opacity-60 w-24 shrink-0">{fmtD(c.date)}</span>
+                    <span>{fmtT(c.time)} · {c.title}</span>{payChip(c.pay_method)}
+                  </div>))}
+                {p.opengym.map((o: any, i: number) => (
+                  <div key={"o" + i} className="text-sm flex items-baseline gap-2">
+                    <span className="opacity-60 w-24 shrink-0">{fmtD(o.date)}</span>
+                    <span>{fmtT(o.time)} · Open Gym ($10)</span>
+                  </div>))}
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Pack & payments</div>
+                <div className="text-sm flex flex-wrap items-center gap-2">
+                  {pack ? <span>Pack: <b>{pack.remaining}/{pack.size}</b> left</span> : <em className="opacity-60">no class pack</em>}
+                  {pack && p.id && <>
+                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: -1 })}>−1</button>
+                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: 1 })}>+1</button>
+                  </>}
+                </div>
+                {p.payments.length > 0 && <div className="text-xs opacity-70 mt-1">
+                  Recent: {p.payments.slice(0, 3).map((pm: any) => `$${pm.amount} ${pm.method} ${pm.date}`).join(" · ")}
+                </div>}
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "10"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}
+                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const a = prompt("Payment amount ($)?"); if (a) post({ op: "add_payment", user_id: p.id, amount: +a, method: prompt("Method? (venmo/cash)", "venmo") || "venmo" }); }}>+ payment</button>}
+                  <a className="btn text-xs !px-2.5 !py-1" href={`sms:?&body=${smsBody}`}>📱 text reminder</a>
+                </div>
+              </div>
             </div>
-            <div className="text-sm mt-2 flex flex-wrap items-center gap-2">
-              {pack ? <span>Pack: <b>{pack.remaining}/{pack.size}</b> left</span> : <em>no class pack</em>}
-              {pack && p.id && <>
-                <button className="btn text-xs" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: -1 })}>−1</button>
-                <button className="btn text-xs" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: 1 })}>+1</button>
-              </>}
-              {p.id && <button className="btn text-xs" disabled={busy} onClick={() => { const s = prompt("Pack size?", "10"); if (s) post({ op: "add_pack", user_id: p.id, size: +s }); }}>+ new pack</button>}
-              {p.id && <button className="btn text-xs" disabled={busy} onClick={() => { const a = prompt("Payment amount ($)?"); if (a) post({ op: "add_payment", user_id: p.id, amount: +a, method: prompt("Method? (venmo/cash)", "venmo") || "venmo" }); }}>+ payment</button>}
-              {owes && <span className="text-red-700 font-semibold">owes</span>}
-              <a className="btn text-xs ml-auto" href={`sms:?&body=${smsBody}`}>📱 text reminder</a>
-            </div>
-            {p.payments.length > 0 && <div className="text-xs opacity-70 mt-1">Recent payments: {p.payments.slice(0, 3).map((pm: any) => `$${pm.amount} ${pm.method} ${pm.date}`).join(" · ")}</div>}
           </div>
         );
       })}
@@ -225,8 +256,13 @@ export default function Admin() {
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
       <div className="flex gap-2 mb-6">
-        <button className={"btn " + (tab === "tally" ? "btn--accent" : "")} onClick={() => setTab("tally")}>Weekly Tally</button>
-        <button className={"btn " + (tab === "schedule" ? "btn--accent" : "")} onClick={() => setTab("schedule")}>Schedule Editor</button>
+        {([["tally", "Members & Payments"], ["schedule", "Schedule Editor"]] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={"px-6 py-2.5 rounded-full font-semibold tracking-wide transition-colors " +
+              (tab === k ? "bg-ea-espresso text-ea-paper shadow" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
+            {label}
+          </button>
+        ))}
       </div>
       {tab === "tally" ? <TallyTab /> : <ScheduleTab />}
     </section>
