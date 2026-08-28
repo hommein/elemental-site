@@ -35,7 +35,7 @@ export default function Account() {
   const [user, setU] = useState<User>(null);
   const [loaded, setLoaded] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
+  const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
 
   useEffect(() => { me().then(u => { setU(u); setLoaded(true); }); }, []);
@@ -44,7 +44,7 @@ export default function Account() {
     e.preventDefault(); setBusy(true); setMsg("");
     const r = await fetch(`/api/auth/${mode}`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify(mode === "register" ? { name, email, password: pw } : { email, password: pw }),
+      body: JSON.stringify(mode === "register" ? { name, email, password: pw, phone } : { email, password: pw }),
     });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.error || "Something went wrong."); return; }
@@ -65,6 +65,7 @@ export default function Account() {
             Booking class sign-ups and open gym is now one click — your name and email are filled in
             automatically, and “My bookings” on the Classes page loads without asking.
           </p>
+          <PhoneBox initial={user.phone || ""} />
           <PackBox />
           {user.is_admin && <a className="btn btn--accent text-center" href="/admin">Studio Admin</a>}
           <button className="btn" onClick={logout}>Sign out</button>
@@ -90,6 +91,9 @@ export default function Account() {
           <form onSubmit={submit} className="flex flex-col gap-3">
             {mode === "register" &&
               <input required placeholder="Your name" value={name} onChange={e => setName(e.target.value)}
+                className="border border-black/20 rounded-lg px-3 py-2" />}
+            {mode === "register" &&
+              <input type="tel" placeholder="Cell phone (for class reminders)" value={phone} onChange={e => setPhone(e.target.value)}
                 className="border border-black/20 rounded-lg px-3 py-2" />}
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
               className="border border-black/20 rounded-lg px-3 py-2" />
@@ -124,6 +128,29 @@ function PackBox() {
       <a className="btn btn--accent inline-block mt-3" target="_blank" rel="noreferrer"
          href="https://account.venmo.com/u/Katelyn-Carano">Pay with Venmo</a>
       <p className="opacity-70 mt-1">Please put exactly <b>“Aerial”</b> in the Venmo note. Cash also accepted at the studio.</p>
+    </div>
+  );
+}
+
+function PhoneBox({ initial }: { initial: string }) {
+  const [phone, setPhone] = useState(initial);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    setBusy(true);
+    const r = await fetch("/api/auth/phone", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ phone }) });
+    setBusy(false); setSaved(r.ok ? "Saved!" : "Couldn't save — try again.");
+    setTimeout(() => setSaved(null), 2500);
+  }
+  return (
+    <div className="border border-ea-accent/40 rounded-lg p-4 bg-white">
+      <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Cell phone</div>
+      <div className="flex gap-2 items-center">
+        <input type="tel" placeholder="(805) 555-1234" value={phone} onChange={e => setPhone(e.target.value)}
+          className="border border-black/20 rounded-lg px-3 py-2 flex-1 min-w-0" />
+        <button className="btn text-sm !px-4 !py-2" disabled={busy || phone === initial && !saved} onClick={save}>Save</button>
+      </div>
+      <p className="text-xs opacity-60 mt-1">{saved || "Used for class reminders and schedule updates by text."}</p>
     </div>
   );
 }

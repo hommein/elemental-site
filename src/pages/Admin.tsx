@@ -200,7 +200,7 @@ function TallyTab() {
           <div key={p.email} className="border border-ea-accent/40 rounded-lg p-4 mb-3 bg-white">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 border-b border-ea-accent/20">
               <strong className="text-lg">{p.name || p.email}</strong>
-              <span className="text-sm opacity-60">{p.email}</span>
+              <span className="text-sm opacity-60">{p.email}{p.phone ? " · " + p.phone : ""}</span>
               <span className="ml-auto flex items-center gap-2">
                 <span className="text-sm font-semibold">{taken} visit{taken === 1 ? "" : "s"} this {scale}</span>
                 <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
@@ -258,7 +258,9 @@ function TallyTab() {
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "4"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}
                   {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const a = prompt("Payment amount ($)?"); if (a) post({ op: "add_payment", user_id: p.id, amount: +a, method: prompt("Method? (venmo/cash)", "venmo") || "venmo" }); }}>+ payment</button>}
-                  <a className="btn text-xs !px-2.5 !py-1" href={`sms:?&body=${smsBody}`}>📱 text reminder</a>
+                  {p.phone
+                    ? <a className="btn text-xs !px-2.5 !py-1" href={`sms:${p.phone}?&body=${smsBody}`}>📱 text reminder</a>
+                    : <span className="text-xs opacity-50 italic">no phone on file</span>}
                 </div>
               </div>
             </div>

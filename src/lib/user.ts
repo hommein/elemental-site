@@ -1,4 +1,4 @@
-export type User = { email: string; name: string; is_admin?: boolean; cal_token?: string } | null;
+export type User = { email: string; name: string; is_admin?: boolean; cal_token?: string; phone?: string | null } | null;
 let cached: User | undefined;
 const subs = new Set<(u: User) => void>();
 export async function me(force = false): Promise<User> {

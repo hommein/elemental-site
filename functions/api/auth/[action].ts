@@ -47,12 +47,21 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request, para
   let b: any; try { b = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   if (action === "google") return googleAuth(env, b);
 
+  if (action === "phone") {
+    const u = await getUser(env, request);
+    if (!u) return json({ error: "Sign in first" }, 401);
+    const phone = String(b?.phone || "").trim();
+    await env.DB.prepare("UPDATE users SET phone = ?1 WHERE id = ?2").bind(phone || null, u.id).run();
+    return json({ ok: true, phone: phone || null });
+  }
+
   const email = String(b?.email || "").trim().toLowerCase();
   const password = String(b?.password || "");
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "Valid email required" }, 400);
 
   if (action === "register") {
     const name = String(b?.name || "").trim();
+    const phone = String(b?.phone || "").trim() || null;
     if (!name) return json({ error: "Name required" }, 400);
     if (password.length < 8) return json({ error: "Password must be at least 8 characters" }, 400);
     const existing: any = await env.DB.prepare("SELECT id, pw_hash, google_sub FROM users WHERE email = ?1").bind(email).first();
@@ -61,12 +70,12 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request, para
     const pw = await hashPw(password);
     let uid: number;
     if (existing) {
-      await env.DB.prepare("UPDATE users SET pw_hash = ?1, name = ?2, cal_token = COALESCE(cal_token, ?3) WHERE id = ?4")
-        .bind(pw, name, randToken(), existing.id).run();
+      await env.DB.prepare("UPDATE users SET pw_hash = ?1, name = ?2, cal_token = COALESCE(cal_token, ?3), phone = COALESCE(?5, phone) WHERE id = ?4")
+        .bind(pw, name, randToken(), existing.id, phone).run();
       uid = existing.id;
     } else {
-      const r = await env.DB.prepare("INSERT INTO users(email, name, pw_hash, cal_token) VALUES(?1, ?2, ?3, ?4)")
-        .bind(email, name, pw, randToken()).run();
+      const r = await env.DB.prepare("INSERT INTO users(email, name, pw_hash, cal_token, phone) VALUES(?1, ?2, ?3, ?4, ?5)")
+        .bind(email, name, pw, randToken(), phone).run();
       uid = r.meta.last_row_id as number;
     }
     return json({ ok: true, user: { email, name } }, 200, { "set-cookie": sessionCookie(await makeSession(env, uid)) });
