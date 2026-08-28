@@ -1,0 +1,2 @@
+ALTER TABLE signups ADD COLUMN pay_method TEXT;
+ALTER TABLE signups ADD COLUMN pack_id INTEGER;

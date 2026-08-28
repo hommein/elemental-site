@@ -352,7 +352,19 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [msg, setMsg] = useState("");
-  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); } }); }, []);
+  const [pay, setPay] = useState<"pack" | "venmo" | "cash" | "">("");
+  const [packLeft, setPackLeft] = useState<number | null>(null);
+  useEffect(() => {
+    me().then(u => {
+      if (!u) return;
+      setName(n => n || u.name); setEmail(e => e || u.email);
+      fetch("/api/pack").then(r => r.ok ? r.json() : null).then(j => {
+        const left = j?.packs?.reduce((a: number, p: any) => a + p.remaining, 0) ?? 0;
+        setPackLeft(left);
+        if (left > 0) setPay(p => p || "pack");
+      }).catch(() => {});
+    });
+  }, []);
 
 
   async function submit(e: React.FormEvent) {
@@ -361,10 +373,14 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
     const r = await fetch("/api/signup", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ class_id: cls.id, date: cls.date, name, email }),
+      body: JSON.stringify({ class_id: cls.id, date: cls.date, name, email, pay_method: pay }),
     });
     const j = await r.json();
-    if (r.ok) { setState("done"); setMsg(`You're in! ${j.spots_left} spot${j.spots_left === 1 ? "" : "s"} left.`); }
+    if (r.ok) {
+      setState("done");
+      setMsg(`You're in! ${j.spots_left} spot${j.spots_left === 1 ? "" : "s"} left.` +
+        (j.pack_remaining != null ? ` ${j.pack_remaining} class${j.pack_remaining === 1 ? "" : "es"} left in your pack.` : ""));
+    }
     else { setState("idle"); setMsg(j.error || "Something went wrong."); }
   }
 
@@ -380,6 +396,12 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
         {state === "done" ? (
           <>
             <p className="text-ea-olive font-medium mb-4">{msg}</p>
+            {pay === "venmo" && (
+              <a className="btn w-full mb-2 block text-center" target="_blank" rel="noreferrer"
+                href="https://account.venmo.com/u/Katelyn-Carano">
+                Pay on Venmo — note "Aerial"
+              </a>
+            )}
             <button className="btn w-full mb-2" onClick={() =>
               openGcal(cls.title, cls.date, cls.time, cls.duration_min || 60,
                 cls.instructor ? `Instructor: ${cls.instructor}` : "")}>
@@ -393,6 +415,23 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
               className="border border-black/20 rounded-lg px-3 py-2" />
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
               className="border border-black/20 rounded-lg px-3 py-2" />
+            <fieldset className="flex flex-col gap-1.5 text-sm">
+              <legend className="font-medium mb-1">How are you paying?</legend>
+              {packLeft != null && packLeft > 0 && (
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="pay" checked={pay === "pack"} onChange={() => setPay("pack")} required />
+                  Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left)</span>
+                </label>
+              )}
+              <label className="flex items-center gap-2">
+                <input type="radio" name="pay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
+                Single class — Venmo
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="pay" checked={pay === "cash"} onChange={() => setPay("cash")} required />
+                Single class — cash in studio
+              </label>
+            </fieldset>
             {msg && <p className="text-sm text-red-700">{msg}</p>}
             <button className="btn btn--accent" disabled={state === "busy"}>
               {state === "busy" ? "Signing up…" : "Sign Up"}
