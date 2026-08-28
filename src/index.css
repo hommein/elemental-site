@@ -1,9 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Montserrat:wght@300;400;500;600;700&display=swap');
 
-/* Tailwind v4 — utilities + theme only (preflight skipped so existing styles stay intact) */
-@layer theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import "tailwindcss";
 
 @theme {
   --color-ea-accent: #bd8f71;
@@ -19,75 +16,15 @@
   --font-body: "Montserrat", "Open Sans", system-ui, sans-serif;
 }
 
-
-:root {
-  /* Elemental Aerial Arts design tokens (official brand bible) */
-  --ea-accent: #bd8f71;        /* brand clay */
-  --ea-accent-soft: #dbb598;   /* warm sand */
-  --ea-cream: #e9cbb1;         /* pale cream */
-  --ea-gold: #f0bd65;          /* accent gold */
-  --ea-olive: #7f6436;         /* accent olive */
-  --ea-brown: #9f664a;         /* deep rust-brown (wordmark) */
-  --ea-brown-light: #bd8f71;
-  --ea-brown-deep: #4b3d34;    /* espresso */
-  --ea-ink: #151515;
-  --ea-paper: #f7f3f0;         /* warm off-white */
-  --ea-white: #ffffff;
-
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-body: "Montserrat", "Open Sans", system-ui, sans-serif;
-
-  --space-1: 0.5rem; --space-2: 1rem; --space-3: 1.5rem;
-  --space-4: 2.5rem; --space-5: 4rem;
-  --radius: 10px;
-  --maxw: 1100px;
+@layer base {
+  body { @apply font-body text-ea-ink bg-ea-paper leading-relaxed; }
+  h1, h2, h3 { @apply font-display text-ea-espresso leading-tight; }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); }
+  h2 { font-size: clamp(1.5rem, 3.5vw, 2.2rem); }
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  font-family: var(--font-body);
-  color: var(--ea-ink);
-  background: var(--ea-paper);
-  line-height: 1.6;
-}
-h1, h2, h3 { font-family: var(--font-display); color: var(--ea-brown-deep); line-height: 1.2; }
-h1 { font-size: clamp(2rem, 5vw, 3.2rem); }
-h2 { font-size: clamp(1.5rem, 3.5vw, 2.2rem); }
-a { color: var(--ea-brown); }
-.container { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--space-3); }
-.btn {
-  display: inline-block; padding: 0.75rem 1.75rem; border-radius: 999px;
-  background: var(--ea-brown-deep); color: var(--ea-paper); text-decoration: none;
-  font-weight: 600; letter-spacing: 0.04em; border: none; cursor: pointer;
-  transition: background 0.2s;
-}
-.btn:hover { background: var(--ea-brown); }
-.btn--accent { background: var(--ea-accent); color: var(--ea-white); }
-.btn--accent:hover { background: var(--ea-brown); }
-section { padding: var(--space-5) 0; }
-
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--space-3); }
-.card { background: var(--ea-white); border: 1px solid var(--ea-accent-soft); border-radius: var(--radius); padding: var(--space-3); }
-.card h3 { margin-top: 0; }
-
-.card--photo { padding: 0; overflow: hidden; }
-.card--photo img { width: 100%; height: 190px; object-fit: cover; display: block; }
-.card--photo h3 { margin: var(--space-2) 0 0.4rem; }
-.card--photo h3, .card--photo p { padding: 0 var(--space-3); }
-.card--photo p { margin-top: 0; }
-.card--photo p { padding-bottom: var(--space-3); }
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-items: center; }
-.split h2 { margin-top: 0; }
-.split img { width: 100%; border-radius: var(--radius); }
-@media (max-width: 760px) { .split { grid-template-columns: 1fr; } .split--rev img { order: -1; } }
-
-/* mobile polish */
-@media (max-width: 760px) {
-  section { padding: var(--space-4) 0; }
-  .container { padding: 0 var(--space-2); }
-  .cards { gap: var(--space-2); }
-  .split { gap: var(--space-3); }
-  .btn { padding: 0.7rem 1.4rem; }
+@layer components {
+  .container { @apply max-w-[1100px] mx-auto px-6 py-14 max-md:px-4 max-md:py-8; }
+  .btn { @apply inline-block px-7 py-3 rounded-full bg-ea-espresso text-ea-paper no-underline font-semibold tracking-wide transition-colors hover:bg-ea-brown; }
+  .btn--accent { @apply bg-ea-accent text-white hover:bg-ea-brown; }
 }

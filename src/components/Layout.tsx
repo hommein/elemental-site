@@ -1,5 +1,4 @@
 import { NavLink, Outlet } from "react-router-dom";
-import "./layout.css";
 
 const links = [
   { to: "/", label: "Home" },
@@ -13,33 +12,38 @@ const links = [
 export default function Layout() {
   return (
     <>
-      <header className="site-header">
-        <div className="container header-inner">
-          <NavLink to="/" className="brand">
-            <img src="/logo_brand.png" alt="Santa Barbara Elemental Aerial Arts" />
+      <header className="bg-ea-paper border-b border-ea-accent-soft/50">
+        <div className="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-between gap-4 flex-wrap max-md:flex-col max-md:gap-2">
+          <NavLink to="/" className="shrink-0">
+            <img src="/logo_brand.png" alt="Santa Barbara Elemental Aerial Arts" className="h-[92px] w-auto max-md:h-16" />
           </NavLink>
-          <nav>
+          <nav className="flex flex-wrap justify-center gap-x-5 gap-y-1">
             {links.map((l) => (
-              <NavLink key={l.to} to={l.to} end={l.to === "/"}>
+              <NavLink
+                key={l.to} to={l.to} end={l.to === "/"}
+                className={({ isActive }) =>
+                  `text-sm font-medium tracking-wide no-underline transition-colors hover:text-ea-brown ${
+                    isActive ? "text-ea-brown underline underline-offset-8 decoration-ea-accent" : "text-ea-espresso"}`}
+              >
                 {l.label}
               </NavLink>
             ))}
           </nav>
-          <a className="phone" href="tel:+18053642037">(805) 364-2037</a>
+          <a href="tel:+18053642037" className="text-sm font-semibold text-ea-espresso no-underline max-md:hidden">(805) 364-2037</a>
         </div>
       </header>
       <main><Outlet /></main>
-      <footer className="site-footer">
-        <div className="container">
+      <footer className="bg-ea-espresso text-ea-paper text-center">
+        <div className="max-w-[1100px] mx-auto px-6 py-10 space-y-2">
           <p>22 W Mission St Unit B, Santa Barbara, CA</p>
-          <p>
-            <a href="mailto:ElementalAerialArts@gmail.com">ElementalAerialArts@gmail.com</a>
-            {" · "}
-            <a href="tel:+18053642037">(805) 364-2037</a>
-            {" · "}
-            <a href="https://www.instagram.com/elemental_aerial_arts/">Instagram</a>
+          <p className="space-x-1">
+            <a className="text-ea-cream hover:text-ea-gold" href="mailto:ElementalAerialArts@gmail.com">ElementalAerialArts@gmail.com</a>
+            <span>·</span>
+            <a className="text-ea-cream hover:text-ea-gold" href="tel:+18053642037">(805) 364-2037</a>
+            <span>·</span>
+            <a className="text-ea-cream hover:text-ea-gold" href="https://www.instagram.com/elemental_aerial_arts/">Instagram</a>
           </p>
-          <p className="fine">© {new Date().getFullYear()} Santa Barbara Elemental Aerial Arts — All Rights Reserved.</p>
+          <p className="text-xs opacity-70">© {new Date().getFullYear()} Santa Barbara Elemental Aerial Arts — All Rights Reserved.</p>
         </div>
       </footer>
     </>
