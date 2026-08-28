@@ -1,0 +1,9 @@
+ALTER TABLE classes ADD COLUMN room TEXT DEFAULT 'Sun Room';
+UPDATE classes SET room='Foyer' WHERE id IN (9,12,14,27);
+UPDATE classes SET active=0 WHERE id=1;
+CREATE TABLE IF NOT EXISTS opengym(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  date TEXT NOT NULL, time TEXT NOT NULL, room TEXT NOT NULL,
+  name TEXT NOT NULL, email TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(date,time,room,email));
