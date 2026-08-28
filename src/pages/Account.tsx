@@ -1,5 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { me, setUser, type User } from "../lib/user";
+
+const GOOGLE_CLIENT_ID = "119603995086-p8d32a3mlbm2cdl1e9h8bkrqe7vlnrbm.apps.googleusercontent.com";
+
+function GoogleButton({ onSignedIn, onError }: { onSignedIn: () => void; onError: (m: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const init = () => {
+      const g = (window as any).google;
+      if (!g?.accounts?.id || !ref.current) return;
+      g.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (resp: any) => {
+          const r = await fetch("/api/auth/google", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ credential: resp.credential }),
+          });
+          const j = await r.json();
+          if (!r.ok) { onError(j.error || "Google sign-in failed."); return; }
+          onSignedIn();
+        },
+      });
+      g.accounts.id.renderButton(ref.current, { theme: "outline", size: "large", width: 280, text: "continue_with" });
+    };
+    if ((window as any).google?.accounts?.id) { init(); return; }
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.onload = init;
+    document.head.appendChild(s);
+  }, []);
+  return <div ref={ref} className="flex justify-center" />;
+}
 
 export default function Account() {
   const [user, setU] = useState<User>(null);
@@ -39,6 +69,14 @@ export default function Account() {
         </div>
       ) : (
         <>
+          <div className="mb-5 flex flex-col gap-3">
+            <GoogleButton
+              onSignedIn={async () => { const u = await me(true); setU(u); }}
+              onError={m => setMsg(m)} />
+            <div className="flex items-center gap-3 text-sm text-ea-espresso/50">
+              <span className="h-px flex-1 bg-black/10" />or<span className="h-px flex-1 bg-black/10" />
+            </div>
+          </div>
           <div className="flex gap-2 mb-5">
             {(["login", "register"] as const).map(m => (
               <button key={m} onClick={() => { setMode(m); setMsg(""); }}
