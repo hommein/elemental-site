@@ -43,3 +43,10 @@ export async function getUser(env: AuthEnv, request: Request): Promise<any | nul
   return env.DB.prepare("SELECT id, email, name, is_admin, cal_token, phone FROM users WHERE id = ?1").bind(uid).first();
 }
 export const randToken = () => b64u(crypto.getRandomValues(new Uint8Array(24)).buffer as ArrayBuffer);
+
+export function normPhone(raw: string): string | null {
+  const d = String(raw || "").replace(/\D/g, "");
+  const ten = d.length === 11 && d[0] === "1" ? d.slice(1) : d;
+  if (ten.length !== 10) return null;
+  return `(${ten.slice(0, 3)}) ${ten.slice(3, 6)}-${ten.slice(6)}`;
+}

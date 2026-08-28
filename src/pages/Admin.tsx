@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { me } from "../lib/user";
 
 type Cls = { id?: number; title: string; instructor: string | null; day: number; time: string;
@@ -271,13 +271,129 @@ function TallyTab() {
   );
 }
 
+
+function EmailTab() {
+  const [data, setData] = useState<any>(null);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [subject, setSubject] = useState("");
+  const [tplId, setTplId] = useState<number | null>(null);
+  const [tplName, setTplName] = useState("");
+  const [attachments, setAttachments] = useState<{ filename: string; content: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const edRef = useRef<HTMLDivElement>(null);
+
+  const load = () => fetch("/api/admin/email").then(r => r.json()).then(setData);
+  useEffect(() => { load(); }, []);
+  const post = (body: any) => fetch("/api/admin/email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
+
+  if (!data) return <p>Loading…</p>;
+  if (!data.recipients) return <p>Admins only.</p>;
+  const rec = data.recipients as any[];
+
+  const group = (name: string, list: any[]) => (
+    <button key={name} className="text-xs underline mr-3" onClick={() => setSel(new Set(list.map(r => r.email)))}>
+      {name} ({list.length})
+    </button>);
+  const toggle = (e: string) => { const n = new Set(sel); n.has(e) ? n.delete(e) : n.add(e); setSel(n); };
+  const cmd = (c: string, v?: string) => { document.execCommand(c, false, v); edRef.current?.focus(); };
+
+  async function addFiles(files: FileList | null) {
+    if (!files) return;
+    for (const f of Array.from(files)) {
+      if (f.size > 3_000_000) { setMsg(`${f.name} is too big (3MB max per file).`); continue; }
+      const b64: string = await new Promise(res => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.readAsDataURL(f); });
+      setAttachments(a => [...a, { filename: f.name, content: b64 }]);
+    }
+  }
+  async function saveTemplate(asNew: boolean) {
+    const name = tplName || prompt("Template name?") || "";
+    if (!name) return;
+    setBusy(true);
+    const r = await post({ op: "save_template", id: asNew ? null : tplId, name, subject, html: edRef.current?.innerHTML || "" });
+    setTplId(r.id); setTplName(name); await load(); setBusy(false); setMsg("Template saved.");
+  }
+  function loadTemplate(t: any) {
+    setTplId(t.id); setTplName(t.name); setSubject(t.subject);
+    if (edRef.current) edRef.current.innerHTML = t.html;
+  }
+  async function send() {
+    if (!sel.size) { setMsg("Pick at least one recipient."); return; }
+    if (!confirm(`Send "${subject}" to ${sel.size} recipient${sel.size === 1 ? "" : "s"}?`)) return;
+    setBusy(true); setMsg("");
+    const r = await post({ op: "send", to: [...sel], subject, html: edRef.current?.innerHTML || "", attachments });
+    setBusy(false);
+    setMsg(r.error ? r.error : `Sent to ${r.sent} recipient${r.sent === 1 ? "" : "s"}.` + (r.failed?.length ? ` ${r.failed.length} failed.` : ""));
+  }
+
+  return (
+    <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
+      <div>
+        <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Recipients ({sel.size} selected)</div>
+        <div className="text-sm mb-2">
+          {group("Everyone", rec)}
+          {group("Has pack", rec.filter(r => r.has_pack))}
+          {group("Active 30d", rec.filter(r => r.active_30d))}
+          <button className="text-xs underline" onClick={() => setSel(new Set())}>Clear</button>
+        </div>
+        <div className="border border-ea-accent/40 rounded max-h-96 overflow-y-auto bg-white">
+          {rec.map(r => (
+            <label key={r.email} className="flex items-center gap-2 px-2 py-1 text-sm border-b border-ea-accent/10 last:border-0 cursor-pointer hover:bg-ea-cream/40">
+              <input type="checkbox" checked={sel.has(r.email)} onChange={() => toggle(r.email)} />
+              <span className="truncate">{r.name || r.email}</span>
+            </label>))}
+        </div>
+        <div className="text-[11px] uppercase tracking-wide opacity-50 mt-4 mb-1">Templates</div>
+        {data.templates.length === 0 && <div className="text-xs opacity-50">None saved yet.</div>}
+        {data.templates.map((t: any) => (
+          <div key={t.id} className="flex items-center gap-1 text-sm py-0.5">
+            <button className={"underline truncate " + (t.id === tplId ? "font-bold" : "")} onClick={() => loadTemplate(t)}>{t.name}</button>
+            <button className="text-xs text-red-700/70 ml-auto" onClick={async () => { if (confirm(`Delete template "${t.name}"?`)) { await post({ op: "delete_template", id: t.id }); if (t.id === tplId) setTplId(null); load(); } }}>✕</button>
+          </div>))}
+      </div>
+      <div>
+        {!data.configured && <p className="text-sm bg-amber-100 text-amber-900 rounded p-2 mb-3">
+          Email delivery isn't configured yet — composing & templates work, but sending needs a (free) Resend API key added as the RESEND_API_KEY secret.</p>}
+        <input placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)}
+          className="border border-black/20 rounded-lg px-3 py-2 w-full mb-2" />
+        <div className="flex flex-wrap items-center gap-1 border border-b-0 border-black/20 rounded-t-lg px-2 py-1 bg-ea-cream/40 text-sm">
+          <button className="px-2 py-0.5 font-bold hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); cmd("bold"); }}>B</button>
+          <button className="px-2 py-0.5 italic hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); cmd("italic"); }}>I</button>
+          <button className="px-2 py-0.5 underline hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); cmd("underline"); }}>U</button>
+          <select className="text-xs bg-white rounded border border-black/10" defaultValue="" onChange={e => { if (e.target.value) cmd("fontSize", e.target.value); e.target.value = ""; }}>
+            <option value="" disabled>Size</option><option value="2">Small</option><option value="3">Normal</option><option value="5">Large</option><option value="6">Huge</option>
+          </select>
+          <input type="color" title="Text color" className="w-7 h-7 p-0 border-0 bg-transparent cursor-pointer" onChange={e => cmd("foreColor", e.target.value)} />
+          <button className="px-2 py-0.5 hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); const u = prompt("Link URL?", "https://"); if (u) cmd("createLink", u); }}>🔗</button>
+          <button className="px-2 py-0.5 hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); const u = prompt("Image URL? (or use 📎 to attach files)", "https://"); if (u) cmd("insertImage", u); }}>🖼️</button>
+          <label className="px-2 py-0.5 hover:bg-white rounded cursor-pointer">📎<input type="file" multiple className="hidden" onChange={e => { addFiles(e.target.files); e.target.value = ""; }} /></label>
+          <button className="px-2 py-0.5 hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); cmd("removeFormat"); }} title="Clear formatting">⌫</button>
+        </div>
+        <div ref={edRef} contentEditable suppressContentEditableWarning
+          className="border border-black/20 rounded-b-lg bg-white px-4 py-3 min-h-56 focus:outline-none prose-sm"
+          style={{ fontFamily: "Georgia, serif" }} />
+        {attachments.length > 0 && <div className="text-xs mt-1">
+          {attachments.map((a, i) => <span key={i} className="inline-flex items-center gap-1 bg-ea-cream/60 rounded px-2 py-0.5 mr-1">📎 {a.filename}
+            <button onClick={() => setAttachments(x => x.filter((_, j) => j !== i))}>✕</button></span>)}
+        </div>}
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <button className="btn text-sm !px-4 !py-2" disabled={busy || !subject} onClick={send}>Send to {sel.size || "…"}</button>
+          <button className="btn text-sm !px-4 !py-2 bg-ea-cream/70 !text-ea-espresso" disabled={busy} onClick={() => saveTemplate(!tplId)}>{tplId ? "Update template" : "Save as template"}</button>
+          {tplId && <button className="text-sm underline" disabled={busy} onClick={() => saveTemplate(true)}>Save as new</button>}
+          {msg && <span className="text-sm font-semibold">{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
-  const [tab, setTab] = useState<"schedule" | "tally">("tally");
+  const [tab, setTab] = useState<"schedule" | "tally" | "email">("tally");
   return (
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
       <div className="flex gap-2 mb-6">
-        {([["tally", "Members & Payments"], ["schedule", "Schedule Editor"]] as const).map(([k, label]) => (
+        {([["tally", "Members & Payments"], ["schedule", "Schedule Editor"], ["email", "Email"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={"px-6 py-2.5 rounded-full font-semibold tracking-wide transition-colors " +
               (tab === k ? "bg-ea-espresso text-ea-paper shadow" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
@@ -285,7 +401,7 @@ export default function Admin() {
           </button>
         ))}
       </div>
-      {tab === "tally" ? <TallyTab /> : <ScheduleTab />}
+      {tab === "tally" ? <TallyTab /> : tab === "email" ? <EmailTab /> : <ScheduleTab />}
     </section>
   );
 }

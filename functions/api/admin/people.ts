@@ -18,7 +18,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
     weekEnd = end.toISOString().slice(0, 10);
   }
 
-  const users = (await env.DB.prepare("SELECT id,name,email FROM users ORDER BY name").all()).results as any[];
+  const users = (await env.DB.prepare("SELECT id,name,email,phone FROM users ORDER BY name").all()).results as any[];
   const su = (await env.DB.prepare(
     `SELECT s.email, s.date, s.pay_method, c.title, c.time FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2 ORDER BY s.date, c.time`).bind(week, weekEnd).all()).results as any[];

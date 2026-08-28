@@ -1,4 +1,4 @@
-import { AuthEnv, json, makeSession, sessionCookie, hashPw, verifyPw, getUser, randToken } from "../../_lib";
+import { AuthEnv, json, makeSession, sessionCookie, hashPw, verifyPw, getUser, randToken, normPhone } from "../../_lib";
 
 const GOOGLE_CLIENT_ID = "119603995086-p8d32a3mlbm2cdl1e9h8bkrqe7vlnrbm.apps.googleusercontent.com";
 
@@ -50,9 +50,11 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request, para
   if (action === "phone") {
     const u = await getUser(env, request);
     if (!u) return json({ error: "Sign in first" }, 401);
-    const phone = String(b?.phone || "").trim();
-    await env.DB.prepare("UPDATE users SET phone = ?1 WHERE id = ?2").bind(phone || null, u.id).run();
-    return json({ ok: true, phone: phone || null });
+    const raw = String(b?.phone || "").trim();
+    const phone = raw ? normPhone(raw) : null;
+    if (raw && !phone) return json({ error: "Please enter a valid 10-digit phone number." }, 400);
+    await env.DB.prepare("UPDATE users SET phone = ?1 WHERE id = ?2").bind(phone, u.id).run();
+    return json({ ok: true, phone });
   }
 
   const email = String(b?.email || "").trim().toLowerCase();
@@ -61,7 +63,9 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request, para
 
   if (action === "register") {
     const name = String(b?.name || "").trim();
-    const phone = String(b?.phone || "").trim() || null;
+    const rawPhone = String(b?.phone || "").trim();
+    const phone = rawPhone ? normPhone(rawPhone) : null;
+    if (rawPhone && !phone) return json({ error: "Please enter a valid 10-digit phone number." }, 400);
     if (!name) return json({ error: "Name required" }, 400);
     if (password.length < 8) return json({ error: "Password must be at least 8 characters" }, 400);
     const existing: any = await env.DB.prepare("SELECT id, pw_hash, google_sub FROM users WHERE email = ?1").bind(email).first();
