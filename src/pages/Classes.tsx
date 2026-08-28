@@ -63,6 +63,7 @@ export default function Classes() {
   const [err, setErr] = useState("");
   const [mDay, setMDay] = useState<number | "all">(new Date().getDay());
   const [tick, setTick] = useState(0);
+  const [showBk, setShowBk] = useState(false);
 
   useEffect(() => {
     setErr("");
@@ -141,6 +142,10 @@ export default function Classes() {
           <button className="text-sm underline text-ea-olive whitespace-nowrap"
             onClick={() => setWeek(null)}>back to this week</button>
         )}
+      </div>
+      <div className="text-center mb-5 -mt-2">
+        <button className="text-sm underline text-ea-espresso/70 hover:text-ea-olive"
+          onClick={() => setShowBk(true)}>My bookings / cancel</button>
       </div>
 
       {/* mobile day picker */}
@@ -240,7 +245,76 @@ export default function Classes() {
         <OpenGymModal day={ogDay} data={data}
           onClose={(changed) => { setOgDay(null); if (changed) setTick(t => t + 1); }} />
       )}
+      {showBk && <MyBookingsModal onClose={(changed) => { setShowBk(false); if (changed) setTick(t => t + 1); }} />}
     </section>
+  );
+}
+
+type Bk = { kind: "class" | "opengym"; id: number; date: string; time: string; title: string; instructor?: string; room?: string; can_cancel: boolean };
+
+function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
+  const [email, setEmail] = useState("");
+  const [rows, setRows] = useState<Bk[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [changed, setChanged] = useState(false);
+
+  async function load(e?: React.FormEvent) {
+    e?.preventDefault();
+    setBusy(true); setMsg("");
+    const r = await fetch("/api/bookings?email=" + encodeURIComponent(email.trim()));
+    const j = await r.json();
+    setBusy(false);
+    if (!r.ok) { setMsg(j.error || "Something went wrong."); return; }
+    setRows(j.bookings);
+  }
+
+  async function cancel(b: Bk) {
+    if (!confirm(`Cancel ${b.title} on ${prettyDate(b.date)} at ${fmt(b.time)}?`)) return;
+    setBusy(true); setMsg("");
+    const r = await fetch("/api/cancel", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: b.kind, id: b.id, email: email.trim() }),
+    });
+    const j = await r.json();
+    setBusy(false);
+    if (!r.ok) { setMsg(j.error || "Could not cancel."); return; }
+    setChanged(true);
+    load();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => onClose(changed)}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <h3 className="font-serif text-2xl mb-1">My Bookings</h3>
+        <p className="text-sm text-ea-espresso/70 mb-4">
+          Enter the email you booked with. Bookings can be cancelled up to 12 hours before the session.
+        </p>
+        <form onSubmit={load} className="flex gap-2 mb-4">
+          <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
+            className="border border-black/20 rounded-lg px-3 py-2 flex-1 min-w-0" />
+          <button className="btn btn--accent" disabled={busy}>{busy ? "…" : "Find"}</button>
+        </form>
+        {msg && <p className="text-sm text-red-700 mb-3">{msg}</p>}
+        {rows && (rows.length === 0
+          ? <p className="text-sm text-ea-espresso/60">No upcoming bookings for that email.</p>
+          : <div className="flex flex-col gap-1.5">
+              {rows.map(b => (
+                <div key={b.kind + b.id} className="border border-black/10 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{b.title}{b.instructor ? ` · ${b.instructor}` : ""}</div>
+                    <div className="text-xs text-ea-espresso/60">{prettyDate(b.date)} · {fmt(b.time)}</div>
+                  </div>
+                  {b.can_cancel
+                    ? <button className="text-sm underline text-red-700 whitespace-nowrap" disabled={busy}
+                        onClick={() => cancel(b)}>Cancel</button>
+                    : <span className="text-xs text-ea-espresso/45 whitespace-nowrap">&lt;12h — call us</span>}
+                </div>
+              ))}
+            </div>)}
+        <button className="btn w-full mt-4" onClick={() => onClose(changed)}>Close</button>
+      </div>
+    </div>
   );
 }
 
