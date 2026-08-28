@@ -125,6 +125,7 @@ export default function Classes() {
 
   const todayISO = localISO(new Date());
   const isCurrent = data ? data.week === curSunday() : !week;
+  useEffect(() => { if (data && !adm && data.week < curSunday()) setWeek(null); }, [data, adm]);
 
   return (
     <section className="container py-10">
@@ -138,7 +139,9 @@ export default function Classes() {
 
       {/* week switcher */}
       <div className="flex items-center gap-2 mb-4">
-        <button aria-label="Previous week" className="btn px-3.5 py-1.5 text-lg leading-none"
+        <button aria-label="Previous week" className="btn px-3.5 py-1.5 text-lg leading-none
+            disabled:opacity-30 disabled:cursor-default"
+          disabled={!data || (!adm && shiftWeek(data.week, -1) < curSunday())}
           onClick={() => data && setWeek(shiftWeek(data.week, -1))}>&lsaquo;</button>
         <div className="flex-1 sm:flex-none sm:w-60 text-center">
           <div className="font-serif text-xl leading-tight">
