@@ -1,0 +1,8 @@
+name = "elemental"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "elemental-db"
+database_id = "3eb6d170-6056-45c7-b745-5e4821267338"
