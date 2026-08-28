@@ -40,6 +40,6 @@ export async function verifyPw(pw: string, stored: string): Promise<boolean> {
 export async function getUser(env: AuthEnv, request: Request): Promise<any | null> {
   const uid = await readSession(env, request);
   if (!uid) return null;
-  return env.DB.prepare("SELECT id, email, name, is_admin, cal_token FROM users WHERE id = ?1").bind(uid).first();
+  return env.DB.prepare("SELECT id, email, name, is_admin, cal_token, phone FROM users WHERE id = ?1").bind(uid).first();
 }
 export const randToken = () => b64u(crypto.getRandomValues(new Uint8Array(24)).buffer as ArrayBuffer);
