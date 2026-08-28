@@ -70,7 +70,7 @@ export default function Classes() {
     if (!isFinite(a)) return [480, 1260];
     return [Math.min(480, Math.floor(a / 60) * 60), Math.max(1260, Math.ceil(b / 60) * 60)];
   }, [data]);
-  const gridH = `${((t1 - t0) / 30) * 3}rem`;
+  const gridH = `${((t1 - t0) / 30) * 2.25}rem`;
   const hours = useMemo(() => {
     const out: number[] = [];
     for (let h = t0 / 60; h <= t1 / 60; h++) out.push(h);
@@ -88,8 +88,8 @@ export default function Classes() {
       const crowded = spans.some(o => o.c !== c && o.s < e && o.e > s);
       return {
         c,
-        top: `${((s - t0) / 30) * 3}rem`,
-        h: `calc(${((e - s) / 30) * 3}rem - 3px)`,
+        top: `${((s - t0) / 30) * 2.25}rem`,
+        h: `calc(${((e - s) / 30) * 2.25}rem - 3px)`,
         left: crowded && lane === 1 ? "50%" : "0",
         width: crowded ? "50%" : "100%",
       };
@@ -131,12 +131,12 @@ export default function Classes() {
               {d} <span className="text-sm text-ea-espresso/60">{data && prettyDate(data.dates[i])}</span>
             </h3>
             <div className="flex flex-col gap-2">
-              {byDay[i].map(c => <Tile key={c.id} c={c} onPick={() => setSel(c)} />)}
-              {byDay[i].length === 0 && <p className="text-sm text-ea-espresso/50">—</p>}
               <button onClick={() => setOgDay(i)}
                 className="text-left border border-dashed border-ea-olive/50 rounded-lg px-2.5 py-2 text-sm text-ea-olive hover:bg-ea-olive/10">
                 + Book Open Gym
               </button>
+              {byDay[i].map(c => <Tile key={c.id} c={c} onPick={() => setSel(c)} />)}
+              {byDay[i].length === 0 && <p className="text-sm text-ea-espresso/50">—</p>}
             </div>
           </div>
         ))}
@@ -152,18 +152,27 @@ export default function Classes() {
           </h3>
         ))}
 
+        {/* aligned open-gym row (top) */}
+        <div />
+        {DAYS.map((_, i) => (
+          <button key={"og" + i} onClick={() => setOgDay(i)}
+            className="mb-2 border border-dashed border-ea-olive/50 rounded-lg px-2 py-1.5 text-xs text-ea-olive hover:bg-ea-olive/10">
+            + Book Open Gym
+          </button>
+        ))}
+
         {/* hour gutter */}
         <div className="relative" style={{ height: gridH }}>
           {hours.map(h => (
             <span key={h} className="absolute right-1 -translate-y-1/2 text-[11px] text-ea-espresso/50"
-              style={{ top: `${((h * 60 - t0) / 30) * 3}rem` }}>{fmt(String(h) + ":00")}</span>
+              style={{ top: `${((h * 60 - t0) / 30) * 2.25}rem` }}>{fmt(String(h) + ":00")}</span>
           ))}
         </div>
 
         {/* day columns */}
         {DAYS.map((_, i) => (
           <div key={i} className="relative rounded-md"
-            style={{ height: gridH, backgroundImage: "repeating-linear-gradient(to bottom, rgba(0,0,0,.07) 0 1px, transparent 1px 6rem)" }}>
+            style={{ height: gridH, backgroundImage: "repeating-linear-gradient(to bottom, rgba(0,0,0,.07) 0 1px, transparent 1px 4.5rem)" }}>
             {placed(byDay[i]).map(({ c, top, h, left, width }) => (
               <div key={c.id} className="absolute px-px" style={{ top, height: h, left, width }}>
                 <Tile c={c} abs onPick={() => setSel(c)} />
@@ -172,14 +181,6 @@ export default function Classes() {
           </div>
         ))}
 
-        {/* aligned open-gym row */}
-        <div />
-        {DAYS.map((_, i) => (
-          <button key={i} onClick={() => setOgDay(i)}
-            className="mt-2 border border-dashed border-ea-olive/50 rounded-lg px-2 py-2 text-xs text-ea-olive hover:bg-ea-olive/10">
-            + Book Open Gym
-          </button>
-        ))}
       </div>
 
       {sel && <SignupModal cls={sel} onClose={(changed) => { setSel(null); if (changed) setTick(t => t + 1); }} />}
