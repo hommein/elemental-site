@@ -1,3 +1,4 @@
+import { me } from "../lib/user";
 import { useEffect, useMemo, useState } from "react";
 
 type Cls = {
@@ -259,10 +260,12 @@ function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
   const [msg, setMsg] = useState("");
   const [changed, setChanged] = useState(false);
 
-  async function load(e?: React.FormEvent) {
+  useEffect(() => { me().then(u => { if (u) { setEmail(u.email); load(undefined, u.email); } }); }, []);
+
+  async function load(e?: React.FormEvent, em?: string) {
     e?.preventDefault();
     setBusy(true); setMsg("");
-    const r = await fetch("/api/bookings?email=" + encodeURIComponent(email.trim()));
+    const r = await fetch("/api/bookings?email=" + encodeURIComponent((em ?? email).trim()));
     const j = await r.json();
     setBusy(false);
     if (!r.ok) { setMsg(j.error || "Something went wrong."); return; }
@@ -348,6 +351,8 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [msg, setMsg] = useState("");
+  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); } }); }, []);
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -401,6 +406,8 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [msg, setMsg] = useState("");
+  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); } }); }, []);
+
 
   const slots = useMemo(() => {
     const cls = data.classes.filter(c => c.day === day);

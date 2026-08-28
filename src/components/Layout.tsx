@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { me, onUser, type User } from "../lib/user";
 import { NavLink, Outlet } from "react-router-dom";
 
 const links = [
@@ -10,6 +12,8 @@ const links = [
 ];
 
 export default function Layout() {
+  const [user, setUserState] = useState<User>(null);
+  useEffect(() => { me().then(setUserState); return onUser(setUserState); }, []);
   return (
     <>
       <header className="bg-ea-paper border-b border-ea-accent-soft/50">
@@ -29,7 +33,12 @@ export default function Layout() {
               </NavLink>
             ))}
           </nav>
-          <a href="tel:+18053642037" className="text-sm font-semibold text-ea-espresso no-underline max-md:hidden">(805) 364-2037</a>
+          <div className="flex items-center gap-4">
+            <NavLink to="/account" className="text-sm font-medium text-ea-espresso no-underline hover:text-ea-brown">
+              {user ? user.name.split(" ")[0] : "Sign In"}
+            </NavLink>
+            <a href="tel:+18053642037" className="text-sm font-semibold text-ea-espresso no-underline max-md:hidden">(805) 364-2037</a>
+          </div>
         </div>
       </header>
       <main><Outlet /></main>

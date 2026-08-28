@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN pw_hash TEXT;
+ALTER TABLE users ADD COLUMN cal_token TEXT;
