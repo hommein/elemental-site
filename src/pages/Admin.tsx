@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+
+const EMOJIS = ["😊","😄","🥳","🤸","🧘","💪","🔥","✨","🌟","⭐","🎉","🎊","❤️","🧡","💛","💚","💙","💜","🤍","🙌","👏","🙏","👍","💃","🕺","🎪","🎭","🩰","🌙","☀️","🌈","🌸","🌺","🍂","🎃","🎄","🎁","⏰","📅","📣","💌","✅","❗","❓","➡️","👉","🆕","🆓"];
 import { me } from "../lib/user";
 
 type Cls = { id?: number; title: string; instructor: string | null; day: number; time: string;
@@ -281,6 +283,7 @@ function EmailTab() {
   const [attachments, setAttachments] = useState<{ filename: string; content: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false);
   const edRef = useRef<HTMLDivElement>(null);
 
   const load = () => fetch("/api/admin/email").then(r => r.json()).then(setData);
@@ -366,6 +369,17 @@ function EmailTab() {
           <input type="color" title="Text color" className="w-7 h-7 p-0 border-0 bg-transparent cursor-pointer" onChange={e => cmd("foreColor", e.target.value)} />
           <button className="px-2 py-0.5 hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); const u = prompt("Link URL?", "https://"); if (u) cmd("createLink", u); }}>🔗</button>
           <button className="px-2 py-0.5 hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); const u = prompt("Image URL? (or use 📎 to attach files)", "https://"); if (u) cmd("insertImage", u); }}>🖼️</button>
+          <span className="relative">
+            <button className="px-2 py-0.5 hover:bg-white rounded" title="Insert emoji" onMouseDown={e => { e.preventDefault(); setShowEmoji(v => !v); }}>😊</button>
+            {showEmoji && (
+              <div className="absolute left-0 top-7 z-20 bg-white border border-black/15 rounded-lg shadow-lg p-2 grid grid-cols-8 gap-0.5 w-64">
+                {EMOJIS.map(em => (
+                  <button key={em} className="text-lg leading-none p-1 hover:bg-ea-cream rounded"
+                    onMouseDown={e => { e.preventDefault(); cmd("insertText", em); }}>{em}</button>
+                ))}
+              </div>
+            )}
+          </span>
           <label className="px-2 py-0.5 hover:bg-white rounded cursor-pointer">📎<input type="file" multiple className="hidden" onChange={e => { addFiles(e.target.files); e.target.value = ""; }} /></label>
           <button className="px-2 py-0.5 hover:bg-white rounded" onMouseDown={e => { e.preventDefault(); cmd("removeFormat"); }} title="Clear formatting">⌫</button>
         </div>
