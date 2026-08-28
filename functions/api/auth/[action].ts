@@ -26,7 +26,7 @@ async function googleAuth(env: AuthEnv, b: any): Promise<Response> {
   if (!u) {
     const byEmail: any = await env.DB.prepare("SELECT id, name FROM users WHERE email = ?1").bind(gEmail).first();
     if (byEmail) {
-      await env.DB.prepare("UPDATE users SET google_sub = ?1, name = COALESCE(name, ?2), cal_token = COALESCE(cal_token, ?3) WHERE id = ?4")
+      await env.DB.prepare("UPDATE users SET google_sub = ?1, pw_hash = NULL, name = COALESCE(name, ?2), cal_token = COALESCE(cal_token, ?3) WHERE id = ?4")
         .bind(sub, gName, randToken(), byEmail.id).run();
       u = byEmail;
     } else {
@@ -55,7 +55,8 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request, para
     const name = String(b?.name || "").trim();
     if (!name) return json({ error: "Name required" }, 400);
     if (password.length < 8) return json({ error: "Password must be at least 8 characters" }, 400);
-    const existing: any = await env.DB.prepare("SELECT id, pw_hash FROM users WHERE email = ?1").bind(email).first();
+    const existing: any = await env.DB.prepare("SELECT id, pw_hash, google_sub FROM users WHERE email = ?1").bind(email).first();
+    if (existing?.google_sub) return json({ error: "That email is linked to Google — use \u201cContinue with Google\u201d instead" }, 409);
     if (existing?.pw_hash) return json({ error: "An account with that email already exists — sign in instead" }, 409);
     const pw = await hashPw(password);
     let uid: number;
@@ -72,7 +73,8 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request, para
   }
 
   if (action === "login") {
-    const u: any = await env.DB.prepare("SELECT id, email, name, pw_hash FROM users WHERE email = ?1").bind(email).first();
+    const u: any = await env.DB.prepare("SELECT id, email, name, pw_hash, google_sub FROM users WHERE email = ?1").bind(email).first();
+    if (u?.google_sub) return json({ error: "This account uses Google sign-in — use \u201cContinue with Google\u201d instead" }, 409);
     if (!u?.pw_hash || !(await verifyPw(password, u.pw_hash))) return json({ error: "Wrong email or password" }, 401);
     return json({ ok: true, user: { email: u.email, name: u.name } }, 200, { "set-cookie": sessionCookie(await makeSession(env, u.id)) });
   }
