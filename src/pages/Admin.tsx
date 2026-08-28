@@ -256,7 +256,7 @@ function TallyTab() {
                   ))}
                 </div>}
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "10"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}
+                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "4"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}
                   {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const a = prompt("Payment amount ($)?"); if (a) post({ op: "add_payment", user_id: p.id, amount: +a, method: prompt("Method? (venmo/cash)", "venmo") || "venmo" }); }}>+ payment</button>}
                   <a className="btn text-xs !px-2.5 !py-1" href={`sms:?&body=${smsBody}`}>📱 text reminder</a>
                 </div>
