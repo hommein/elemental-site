@@ -11,20 +11,22 @@ const ROOMS = ["Sun Room", "Foyer"];
 const OG_CAP = 2; // per room per hour
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const GUESTS = new Set(["Bethany", "Mel", "Daniel"]);
+const GUESTS = new Set(["Bethany", "Mel", "Daniel", "Kelsey"]);
 const GROUPS: Record<string, string> = {
-  aerial: "bg-[#f3c6a5] border-[#bd8f71]",
-  flex: "bg-[#f6dca8] border-[#e0a93c]",
-  guest: "bg-[#ddd0ec] border-[#8d6fb8]",
+  aerial: "bg-[#f0bd65] border-[#9f664a]",
+  flex: "bg-[#e9cbb1] border-[#bd8f71]",
+  guest: "bg-[#ded4b2] border-[#7f6436]",
   selah: "bg-white border-black/25",
+  jam: "bg-[linear-gradient(135deg,#f5b8b8_0%,#f6d9a8_25%,#cfe3b8_50%,#b8d6ec_75%,#d9c2e8_100%)] border-black/20",
 };
 const GROUP_LABEL: [string, string][] = [
-  ["Aerial", "aerial"], ["Flex", "flex"], ["Guest Instructors", "guest"], ["Selah Dance", "selah"],
+  ["Aerial", "aerial"], ["Flex", "flex"], ["Guest Instructors", "guest"], ["Selah Dance", "selah"], ["Community Jam", "jam"],
 ];
-const groupOf = (c: { category: string; instructor: string | null }) =>
+const groupOf = (c: { title: string; category: string; instructor: string | null }) =>
   c.category === "selah" ? "selah"
+  : c.title === "Community Jam" ? "jam"
   : c.category === "flex" ? "flex"
-  : c.instructor && GUESTS.has(c.instructor) ? "guest"
+  : c.title === "Belly Dance" || (c.instructor && GUESTS.has(c.instructor)) ? "guest"
   : "aerial";
 
 const SELAH_URL = "https://selah.dance/classes-and-workshops";
