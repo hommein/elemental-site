@@ -20,7 +20,7 @@ const GROUPS: Record<string, string> = {
   jam: "bg-[linear-gradient(135deg,#f5b8b8_0%,#f6d9a8_25%,#cfe3b8_50%,#b8d6ec_75%,#d9c2e8_100%)] border-black/20",
 };
 const GROUP_LABEL: [string, string][] = [
-  ["Aerial", "aerial"], ["Flex", "flex"], ["Guest Instructors", "guest"], ["Selah Dance", "selah"], ["Community Jam", "jam"],
+  ["Aerial", "aerial"], ["Flex", "flex"], ["Guest Instructors", "guest"], ["Selah Dance", "selah"],
 ];
 const groupOf = (c: { title: string; category: string; instructor: string | null }) =>
   c.category === "selah" ? "selah"
