@@ -13,7 +13,8 @@ export function gcalUrl(title: string, date: string, time: string, mins: number,
   const s = ptEpoch(date, time);
   const p = new URLSearchParams({ action: "TEMPLATE", text: title, dates: `${z(s)}/${z(s + mins * 60000)}`,
     details, location: "Elemental Aerial Arts, 22 W Mission St, Santa Barbara, CA 93101" });
-  return `https://calendar.google.com/calendar/render?${p}`;
+  const cal = `https://calendar.google.com/calendar/render?${p}`;
+  return `https://accounts.google.com/AccountChooser?continue=${encodeURIComponent(cal)}`;
 }
 export function openGcal(title: string, date: string, time: string, mins: number, details = "") {
   window.open(gcalUrl(title, date, time, mins, details), "_blank", "width=620,height=700,noopener");

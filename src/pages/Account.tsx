@@ -65,23 +65,6 @@ export default function Account() {
             Booking class sign-ups and open gym is now one click — your name and email are filled in
             automatically, and “My bookings” on the Classes page loads without asking.
           </p>
-          {user.cal_token && (
-            <div className="border border-black/10 rounded-xl p-4 flex flex-col gap-2">
-              <h2 className="font-serif text-xl">Calendar sync</h2>
-              <p className="text-sm text-ea-espresso/70">
-                Subscribe to this private feed in Google Calendar (“Other calendars → From URL”),
-                Apple Calendar, or Outlook — your bookings will appear automatically and stay in sync.
-              </p>
-              <code className="text-xs bg-black/5 rounded px-2 py-1.5 break-all select-all">
-                {`${location.origin}/api/calendar/${user.cal_token}.ics`}
-              </code>
-              <button className="btn self-start" onClick={() => {
-                navigator.clipboard.writeText(`${location.origin}/api/calendar/${user.cal_token}.ics`);
-                setMsg("Copied!"); setTimeout(() => setMsg(""), 1500);
-              }}>Copy link</button>
-              {msg && <p className="text-sm text-ea-brown">{msg}</p>}
-            </div>
-          )}
           {user.is_admin && <a className="btn btn--accent text-center" href="/admin">Schedule Admin</a>}
           <button className="btn" onClick={logout}>Sign out</button>
         </div>
