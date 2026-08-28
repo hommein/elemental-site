@@ -58,7 +58,7 @@ export default function Home() {
             available &amp; encouraged for members and regular students.</p>
           <a className="btn" href="/classes">See Times &amp; How to Book</a>
         </div>
-        <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full max-h-[340px] object-cover max-md:order-first" />
+        <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full max-h-[340px] object-cover object-bottom max-md:order-first" />
       </section>
 
       <section className="bg-ea-espresso text-center">
