@@ -41,6 +41,14 @@ function prettyDate(iso: string) {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+function localISO(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function curSunday() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  return localISO(d);
+}
 function shiftWeek(sunday: string, by: number) {
   const d = new Date(sunday + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + by * 7);
@@ -53,6 +61,7 @@ export default function Classes() {
   const [sel, setSel] = useState<Cls | null>(null);
   const [ogDay, setOgDay] = useState<number | null>(null);
   const [err, setErr] = useState("");
+  const [mDay, setMDay] = useState<number | "all">(new Date().getDay());
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -101,6 +110,9 @@ export default function Classes() {
     });
   }
 
+  const todayISO = localISO(new Date());
+  const isCurrent = data ? data.week === curSunday() : !week;
+
   return (
     <section className="container py-10">
       <h1 className="font-serif text-4xl mb-2">Classes &amp; Schedule</h1>
@@ -111,13 +123,47 @@ export default function Classes() {
         Open Gym is $10 per session — or unlimited with an Open Gym membership.
       </p>
 
-      <div className="flex items-center gap-3 mb-6">
-        <button className="btn" onClick={() => data && setWeek(shiftWeek(data.week, -1))}>&larr; Prev</button>
-        <span className="font-medium">
-          {data ? `Week of ${prettyDate(data.dates[0])} – ${prettyDate(data.dates[6])}` : "Loading…"}
-        </span>
-        <button className="btn" onClick={() => data && setWeek(shiftWeek(data.week, 1))}>Next &rarr;</button>
-        {week && <button className="text-sm underline" onClick={() => setWeek(null)}>today</button>}
+      {/* week switcher */}
+      <div className="flex items-center gap-2 mb-4">
+        <button aria-label="Previous week" className="btn px-3.5 py-1.5 text-lg leading-none"
+          onClick={() => data && setWeek(shiftWeek(data.week, -1))}>&lsaquo;</button>
+        <div className="flex-1 sm:flex-none sm:w-60 text-center">
+          <div className="font-serif text-xl leading-tight">
+            {data ? (isCurrent ? "This Week" : `Week of ${prettyDate(data.dates[0])}`) : "Loading…"}
+          </div>
+          <div className="text-xs text-ea-espresso/60">
+            {data ? `${prettyDate(data.dates[0])} – ${prettyDate(data.dates[6])}` : "\u00a0"}
+          </div>
+        </div>
+        <button aria-label="Next week" className="btn px-3.5 py-1.5 text-lg leading-none"
+          onClick={() => data && setWeek(shiftWeek(data.week, 1))}>&rsaquo;</button>
+        {!isCurrent && (
+          <button className="text-sm underline text-ea-olive whitespace-nowrap"
+            onClick={() => setWeek(null)}>back to this week</button>
+        )}
+      </div>
+
+      {/* mobile day picker */}
+      <div className="lg:hidden mb-5 grid grid-cols-8 gap-1">
+        {DAYS.map((d, i) => {
+          const isToday = data?.dates[i] === todayISO;
+          const on = mDay === i;
+          return (
+            <button key={d} onClick={() => setMDay(i)}
+              className={`rounded-lg py-1.5 border text-center transition
+                ${on ? "bg-ea-espresso text-white border-ea-espresso" : "border-ea-accent/40 hover:bg-ea-accent/10"}`}>
+              <span className="block text-[10px] leading-none opacity-70">{d.slice(0, 3)}</span>
+              <span className={`block text-sm font-medium ${!on && isToday ? "underline underline-offset-2" : ""}`}>
+                {data ? Number(data.dates[i].slice(8, 10)) : "·"}
+              </span>
+            </button>
+          );
+        })}
+        <button onClick={() => setMDay("all")}
+          className={`rounded-lg py-1.5 border text-sm transition
+            ${mDay === "all" ? "bg-ea-espresso text-white border-ea-espresso" : "border-ea-accent/40 hover:bg-ea-accent/10"}`}>
+          All
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-5 text-xs">
@@ -130,10 +176,11 @@ export default function Classes() {
 
       {/* ---- mobile: stacked day lists ---- */}
       <div className="grid gap-4 md:grid-cols-2 lg:hidden">
-        {DAYS.map((d, i) => (
+        {DAYS.map((d, i) => (mDay === "all" || mDay === i) && (
           <div key={d}>
             <h3 className="font-serif text-lg border-b border-ea-accent/50 pb-1 mb-2">
               {d} <span className="text-sm text-ea-espresso/60">{data && prettyDate(data.dates[i])}</span>
+              {data?.dates[i] === todayISO && <span className="ml-2 text-xs bg-ea-gold/40 rounded-full px-2 py-0.5 align-middle">today</span>}
             </h3>
             <div className="flex flex-col gap-2">
               <button onClick={() => setOgDay(i)}
