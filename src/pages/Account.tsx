@@ -65,7 +65,8 @@ export default function Account() {
             Booking class sign-ups and open gym is now one click — your name and email are filled in
             automatically, and “My bookings” on the Classes page loads without asking.
           </p>
-          {user.is_admin && <a className="btn btn--accent text-center" href="/admin">Schedule Admin</a>}
+          <PackBox />
+          {user.is_admin && <a className="btn btn--accent text-center" href="/admin">Studio Admin</a>}
           <button className="btn" onClick={logout}>Sign out</button>
         </div>
       ) : (
@@ -104,5 +105,25 @@ export default function Account() {
         </>
       )}
     </section>
+  );
+}
+
+function PackBox() {
+  const [d, setD] = useState<any>(null);
+  useEffect(() => { fetch("/api/pack").then(r => r.json()).then(setD); }, []);
+  if (!d) return null;
+  const pack = (d.packs || []).find((p: any) => p.remaining > 0) || (d.packs || [])[0];
+  return (
+    <div className="border border-ea-accent/40 rounded p-4 text-sm">
+      <h2 className="font-serif text-lg mb-1">Class Pack & Payments</h2>
+      {pack
+        ? <p>You have <b>{pack.remaining}</b> of <b>{pack.size}</b> classes left in your pack.</p>
+        : <p>No class pack on file — pay per class, or ask at the studio about packs.</p>}
+      {(d.payments || []).length > 0 &&
+        <p className="opacity-70 mt-1">Last payment: ${d.payments[0].amount} ({d.payments[0].method}, {d.payments[0].date})</p>}
+      <a className="btn btn--accent inline-block mt-3" target="_blank" rel="noreferrer"
+         href="https://account.venmo.com/u/Katelyn-Carano">Pay with Venmo</a>
+      <p className="opacity-70 mt-1">Please put exactly <b>“Aerial”</b> in the Venmo note. Cash also accepted at the studio.</p>
+    </div>
   );
 }

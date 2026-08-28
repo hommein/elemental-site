@@ -6,7 +6,7 @@ type Cls = { id?: number; title: string; instructor: string | null; day: number;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const BLANK: Cls = { title: "", instructor: "", day: 1, time: "09:00", duration_min: 60, category: "", pricing: "", capacity: 8, active: 1, room: "Sun Room" };
 
-export default function Admin() {
+function ScheduleTab() {
   const [ok, setOk] = useState<boolean | null>(null);
   const [rows, setRows] = useState<Cls[]>([]);
   const [edit, setEdit] = useState<Cls | null>(null);
@@ -98,6 +98,80 @@ export default function Admin() {
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+
+function fmtWk(d: Date) { return d.toISOString().slice(0, 10); }
+function curSun() { const n = new Date(); const d = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d; }
+const VENMO = "https://account.venmo.com/u/Katelyn-Carano";
+
+function TallyTab() {
+  const [week, setWeek] = useState(() => fmtWk(curSun()));
+  const [data, setData] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+  const load = (w: string) => fetch("/api/admin/people?week=" + w).then(r => r.json()).then(setData);
+  useEffect(() => { load(week); }, [week]);
+  const shift = (n: number) => { const d = new Date(week + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 7 * n); setWeek(fmtWk(d)); };
+  const post = async (body: any) => { setBusy(true); await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); await load(week); setBusy(false); };
+
+  if (!data) return <p>Loading…</p>;
+  if (!data.people) return <p>Admins only.</p>;
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <button className="btn" onClick={() => shift(-1)}>‹</button>
+        <strong>Week of {week}</strong>
+        <button className="btn" onClick={() => shift(1)}>›</button>
+      </div>
+      {data.people.map((p: any) => {
+        const taken = p.classes.length + p.opengym.length;
+        const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
+        const owes = taken > 0 && (!pack || pack.remaining < taken);
+        const smsBody = encodeURIComponent(
+          `Hi ${p.name?.split(" ")[0] || ""}! This week at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
+          (pack ? ` Your class pack has ${pack.remaining} of ${pack.size} classes left.` : "") +
+          (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
+        return (
+          <div key={p.email} className="border border-ea-accent/40 rounded p-3 mb-3">
+            <div className="flex flex-wrap items-baseline gap-x-3">
+              <strong>{p.name}</strong><span className="text-sm opacity-70">{p.email}</span>
+              <span className="ml-auto font-semibold">{taken} class{taken === 1 ? "" : "es"} this week</span>
+            </div>
+            <div className="text-sm mt-1">
+              {p.classes.map((c: any, i: number) => <div key={i}>{c.date} · {c.time} {c.title}</div>)}
+              {p.opengym.map((o: any, i: number) => <div key={i}>{o.date} · {o.time} Open Gym ($10)</div>)}
+            </div>
+            <div className="text-sm mt-2 flex flex-wrap items-center gap-2">
+              {pack ? <span>Pack: <b>{pack.remaining}/{pack.size}</b> left</span> : <em>no class pack</em>}
+              {pack && p.id && <>
+                <button className="btn text-xs" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: -1 })}>−1</button>
+                <button className="btn text-xs" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: 1 })}>+1</button>
+              </>}
+              {p.id && <button className="btn text-xs" disabled={busy} onClick={() => { const s = prompt("Pack size?", "10"); if (s) post({ op: "add_pack", user_id: p.id, size: +s }); }}>+ new pack</button>}
+              {p.id && <button className="btn text-xs" disabled={busy} onClick={() => { const a = prompt("Payment amount ($)?"); if (a) post({ op: "add_payment", user_id: p.id, amount: +a, method: prompt("Method? (venmo/cash)", "venmo") || "venmo" }); }}>+ payment</button>}
+              {owes && <span className="text-red-700 font-semibold">owes</span>}
+              <a className="btn text-xs ml-auto" href={`sms:?&body=${smsBody}`}>📱 text reminder</a>
+            </div>
+            {p.payments.length > 0 && <div className="text-xs opacity-70 mt-1">Recent payments: {p.payments.slice(0, 3).map((pm: any) => `$${pm.amount} ${pm.method} ${pm.date}`).join(" · ")}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function Admin() {
+  const [tab, setTab] = useState<"schedule" | "tally">("tally");
+  return (
+    <section className="container py-8">
+      <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
+      <div className="flex gap-2 mb-6">
+        <button className={"btn " + (tab === "tally" ? "btn--accent" : "")} onClick={() => setTab("tally")}>Weekly Tally</button>
+        <button className={"btn " + (tab === "schedule" ? "btn--accent" : "")} onClick={() => setTab("schedule")}>Schedule Editor</button>
+      </div>
+      {tab === "tally" ? <TallyTab /> : <ScheduleTab />}
     </section>
   );
 }
