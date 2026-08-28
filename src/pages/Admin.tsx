@@ -141,9 +141,47 @@ function TallyTab() {
             </button>
           ))}
         </span>
-        <strong>{scale === "week" ? `Week of ${week}` : new Date(month + "-15T00:00:00Z").toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</strong>
+        <strong>{scale === "week"
+          ? (() => { const s = new Date(week + "T00:00:00Z"), e = new Date(week + "T00:00:00Z"); e.setUTCDate(e.getUTCDate() + 6);
+              const f = (d: Date) => d.toLocaleString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+              return `${f(s)} – ${f(e)}, ${e.getUTCFullYear()}`; })()
+          : new Date(month + "-15T00:00:00Z").toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</strong>
         <button className="btn" onClick={() => shift(1)}>›</button>
       </div>
+      {(() => {
+        const ppl = data.people as any[];
+        const r = range();
+        const end = r.end || (() => { const d = new Date(r.start + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 7); return d.toISOString().slice(0, 10); })();
+        const inR = (d: string) => d >= r.start && d < end;
+        const cls = ppl.flatMap(p => p.classes);
+        const og = ppl.flatMap(p => p.opengym);
+        const active = ppl.filter(p => p.classes.length + p.opengym.length > 0);
+        const by = (m: string) => cls.filter((c: any) => c.pay_method === m).length;
+        const owing = ppl.filter(p => { const t = p.classes.length + p.opengym.length;
+          const pk = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
+          return t > 0 && (!pk || pk.remaining < t); }).length;
+        const paysIn = ppl.flatMap(p => p.payments || []).filter((x: any) => inR(x.date));
+        const paid = paysIn.reduce((s: number, x: any) => s + (x.amount || 0), 0);
+        const packsSold = ppl.flatMap(p => p.packs || []).filter((k: any) => inR((k.purchased_at || "").slice(0, 10))).length;
+        const stat = (n: any, l: string) => (
+          <div className="bg-white border border-ea-accent/40 rounded p-2 text-center min-w-[5.5rem]">
+            <div className="text-xl font-semibold leading-tight">{n}</div>
+            <div className="text-[11px] text-ea-espresso/60 leading-tight">{l}</div>
+          </div>);
+        return (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {stat(active.length, "active students")}
+            {stat(cls.length, "class signups")}
+            {stat(og.length, "open gym visits")}
+            {stat(by("pack"), "paid by pack")}
+            {stat(by("venmo"), "venmo")}
+            {stat(by("cash"), "cash")}
+            {stat(owing, "owe money")}
+            {stat("$" + paid, "payments logged")}
+            {stat(packsSold, "packs sold")}
+          </div>
+        );
+      })()}
       {data.people.map((p: any) => {
         const taken = p.classes.length + p.opengym.length;
         const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
@@ -159,7 +197,7 @@ function TallyTab() {
               <span className="ml-auto font-semibold">{taken} class{taken === 1 ? "" : "es"} this {scale}</span>
             </div>
             <div className="text-sm mt-1">
-              {p.classes.map((c: any, i: number) => <div key={i}>{c.date} · {c.time} {c.title}</div>)}
+              {p.classes.map((c: any, i: number) => <div key={i}>{c.date} · {c.time} {c.title}{c.pay_method ? <span className="opacity-60"> · {c.pay_method}</span> : null}</div>)}
               {p.opengym.map((o: any, i: number) => <div key={i}>{o.date} · {o.time} Open Gym ($10)</div>)}
             </div>
             <div className="text-sm mt-2 flex flex-wrap items-center gap-2">
