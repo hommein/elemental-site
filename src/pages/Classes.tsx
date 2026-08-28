@@ -11,21 +11,21 @@ const ROOMS = ["Sun Room", "Foyer"];
 const OG_CAP = 2; // per room per hour
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const INSTR: Record<string, string> = {
-  Abby: "bg-[#f3c6a5] border-[#bd8f71]",
-  Hybrid: "bg-[#f6dca8] border-[#e0a93c]",
-  Katya: "bg-[#dde5c0] border-[#8ea05c]",
-  Eric: "bg-[#c3e3de] border-[#4f9a8e]",
-  Bethany: "bg-[#f3c9d5] border-[#c96a8a]",
-  Jill: "bg-[#ddd0ec] border-[#8d6fb8]",
-  Carlos: "bg-[#c9dcf2] border-[#5b87c0]",
-  Mel: "bg-[#f2c3ea] border-[#b25aa6]",
-  Catie: "bg-[#fbd2c0] border-[#e0765a]",
-  Daniel: "bg-[#cfe8c6] border-[#5f9e52]",
-  Kelsey: "bg-[#e6d3b4] border-[#a08048]",
-  Selah: "bg-white border-black/25",
+const GUESTS = new Set(["Bethany", "Mel", "Daniel"]);
+const GROUPS: Record<string, string> = {
+  aerial: "bg-[#f3c6a5] border-[#bd8f71]",
+  flex: "bg-[#f6dca8] border-[#e0a93c]",
+  guest: "bg-[#ddd0ec] border-[#8d6fb8]",
+  selah: "bg-white border-black/25",
 };
-const INSTR_FALLBACK = "bg-black/5 border-black/10";
+const GROUP_LABEL: [string, string][] = [
+  ["Aerial", "aerial"], ["Flex", "flex"], ["Guest Instructors", "guest"], ["Selah Dance", "selah"],
+];
+const groupOf = (c: { category: string; instructor: string | null }) =>
+  c.category === "selah" ? "selah"
+  : c.category === "flex" ? "flex"
+  : c.instructor && GUESTS.has(c.instructor) ? "guest"
+  : "aerial";
 
 const SELAH_URL = "https://selah.dance/classes-and-workshops";
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
@@ -119,8 +119,8 @@ export default function Classes() {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-5 text-xs">
-        {Object.entries(INSTR).map(([who, cls]) => (
-          <span key={who} className={`border rounded-full px-2.5 py-0.5 ${cls}`}>{who === "Selah" ? "Selah Dance" : who}</span>
+        {GROUP_LABEL.map(([label, k]) => (
+          <span key={k} className={`border rounded-full px-2.5 py-0.5 ${GROUPS[k]}`}>{label}</span>
         ))}
       </div>
 
@@ -200,7 +200,7 @@ function Tile({ c, onPick, abs }: { c: Cls; onPick: () => void; abs?: boolean })
   const ext = c.pricing === "external";
   const cls = `text-left border rounded-lg overflow-hidden transition block
     ${abs ? "h-full w-full px-1.5 py-1 text-xs leading-tight" : "px-2.5 py-2 text-sm"}
-    ${(c.instructor && INSTR[c.instructor]) ?? INSTR_FALLBACK}
+    ${GROUPS[groupOf(c)]}
     ${ext ? "hover:shadow-md" : "hover:shadow-md"}`;
   const body = (
     <>
