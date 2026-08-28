@@ -288,7 +288,7 @@ function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="font-serif text-2xl mb-1">My Bookings</h3>
         <p className="text-sm text-ea-espresso/70 mb-4">
-          Enter the email you booked with. Bookings can be cancelled up to 12 hours before the session.
+          Enter the email you booked with. Bookings can be cancelled up to 12 hours before the session. Within 12 hours, text us at (805) 364-2037.
         </p>
         <form onSubmit={load} className="flex gap-2 mb-4">
           <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
@@ -308,7 +308,7 @@ function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
                   {b.can_cancel
                     ? <button className="text-sm underline text-red-700 whitespace-nowrap" disabled={busy}
                         onClick={() => cancel(b)}>Cancel</button>
-                    : <span className="text-xs text-ea-espresso/45 whitespace-nowrap">&lt;12h — call us</span>}
+                    : <a href="sms:+18053642037" className="text-xs text-ea-espresso/60 whitespace-nowrap underline">&lt;12h — text (805)&nbsp;364-2037</a>}
                 </div>
               ))}
             </div>)}
