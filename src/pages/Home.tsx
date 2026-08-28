@@ -2,7 +2,7 @@ export default function Home() {
   return (
     <>
       <section className="hero" style={{
-        background: "linear-gradient(rgba(21,21,21,0.4), rgba(75,61,52,0.5)), url(/hero.png) center 30%/cover no-repeat",
+        background: "linear-gradient(rgba(21,21,21,0.4), rgba(75,61,52,0.5)), url(/hero.png) center 45%/cover no-repeat",
         color: "var(--ea-paper)", textAlign: "center",
         minHeight: "min(74vh, 640px)", display: "flex", flexDirection: "column",
         justifyContent: "center", alignItems: "center", padding: "3rem 1rem",
@@ -37,7 +37,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section style={{ background: "var(--ea-accent-soft)" }}>
+      <section style={{ background: "var(--ea-cream)" }}>
         <div className="container split">
           <img src="/photos/sunset.jpg" alt="Sunset aerial performance" loading="lazy" />
           <div>
