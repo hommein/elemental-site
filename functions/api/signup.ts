@@ -1,4 +1,6 @@
-interface Env { DB: D1Database }
+import { ptEpoch } from "./bookings";
+import { getUser } from "../_lib";
+interface Env { DB: D1Database; SESSION_SECRET: string }
 
 const METHODS = ["pack", "venmo", "cash"];
 
@@ -17,6 +19,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (cls.pricing === "external") return err("This class is booked through Selah Dance", 400);
   const dow = new Date(date + "T00:00:00Z").getUTCDay();
   if (dow !== cls.day) return err("Date does not match this class's weekday", 400);
+
+  if (ptEpoch(date, cls.time) <= Date.now()) {
+    const u: any = await getUser(env as any, request);
+    if (!u?.is_admin) return err("This class has already started — pick an upcoming one", 400);
+  }
 
   const cnt: any = await env.DB.prepare("SELECT COUNT(*) n FROM signups WHERE class_id=? AND date=?").bind(class_id, date).first();
   if (cnt.n >= cls.capacity) return err("Class is full", 409);

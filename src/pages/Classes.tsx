@@ -57,8 +57,18 @@ function shiftWeek(sunday: string, by: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function ptNow(): string {
+  const p = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit",
+    day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(new Date());
+  return p.replace(", ", " ").replace(" 24:", " 00:");
+}
+
 export default function Classes() {
   const [data, setData] = useState<Sched | null>(null);
+  const [adm, setAdm] = useState(false);
+  useEffect(() => { me().then(u => setAdm(!!u?.is_admin)); }, []);
   const [week, setWeek] = useState<string | null>(null);
   const [sel, setSel] = useState<Cls | null>(null);
   const [ogDay, setOgDay] = useState<number | null>(null);
@@ -194,7 +204,7 @@ export default function Classes() {
                 className="text-left border border-dashed border-ea-olive/50 rounded-lg px-2.5 py-2 text-sm text-ea-olive hover:bg-ea-olive/10">
                 + Book Open Gym
               </button>
-              {byDay[i].map(c => <Tile key={c.id} c={c} onPick={() => setSel(c)} />)}
+              {byDay[i].map(c => <Tile key={c.id} c={c} admin={adm} onPick={() => setSel(c)} />)}
               {byDay[i].length === 0 && <p className="text-sm text-ea-espresso/50">—</p>}
             </div>
           </div>
@@ -234,7 +244,7 @@ export default function Classes() {
             style={{ height: gridH, backgroundImage: "repeating-linear-gradient(to bottom, rgba(0,0,0,.07) 0 1px, transparent 1px 4.5rem)" }}>
             {placed(byDay[i]).map(({ c, top, h, left, width }) => (
               <div key={c.id} className="absolute px-px" style={{ top, height: h, left, width }}>
-                <Tile c={c} abs onPick={() => setSel(c)} />
+                <Tile c={c} abs admin={adm} onPick={() => setSel(c)} />
               </div>
             ))}
           </div>
@@ -322,13 +332,15 @@ function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
   );
 }
 
-function Tile({ c, onPick, abs }: { c: Cls; onPick: () => void; abs?: boolean }) {
+function Tile({ c, onPick, abs, admin }: { c: Cls; onPick: () => void; abs?: boolean; admin?: boolean }) {
   const full = c.taken >= c.capacity;
   const ext = c.pricing === "external";
+  const past = `${c.date} ${c.time}` <= ptNow();
   const cls = `text-left border rounded-lg overflow-hidden transition block
     ${abs ? "h-full w-full px-1.5 py-1 text-xs leading-tight" : "px-2.5 py-2 text-sm"}
     ${GROUPS[groupOf(c)]}
-    ${ext ? "hover:shadow-md" : "hover:shadow-md"}`;
+    ${past && !admin ? "opacity-40 grayscale cursor-default" : "hover:shadow-md"}
+    ${past && admin ? "opacity-70" : ""}`;
   const body = (
     <>
       <div className="font-medium leading-tight truncate">{c.title}</div>
@@ -342,6 +354,8 @@ function Tile({ c, onPick, abs }: { c: Cls; onPick: () => void; abs?: boolean })
           </div>}
     </>
   );
+  if (past && !admin)
+    return <div className={cls}>{body}</div>;
   return ext
     ? <a href={SELAH_URL} target="_blank" rel="noreferrer" className={cls}>{body}</a>
     : <button onClick={onPick} className={cls}>{body}</button>;
@@ -471,7 +485,7 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
         const n = data.opengym.find(o => o.date === date && o.time === t && o.room === room)?.n || 0;
         left += Math.max(0, OG_CAP - n);
       }
-      out.push({ time: t, left });
+      if (`${date} ${t}` > ptNow()) out.push({ time: t, left });
     }
     return out;
   }, [data, day, date]);

@@ -1,4 +1,6 @@
-interface Env { DB: D1Database }
+import { ptEpoch } from "./bookings";
+import { getUser } from "../_lib";
+interface Env { DB: D1Database; SESSION_SECRET: string }
 const ROOMS = ["Sun Room", "Foyer"];
 const CAP = 2; // spots per room per hour
 
@@ -10,6 +12,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err("Bad email", 400);
   const h = parseInt(time.slice(0, 2), 10);
   if (h < 8 || h > 20) return err("Open gym is available 8am-9pm", 400);
+
+  if (ptEpoch(date, time) <= Date.now()) {
+    const u: any = await getUser(env as any, request);
+    if (!u?.is_admin) return err("That time has already passed — pick an upcoming slot", 400);
+  }
 
   const day = new Date(date + "T00:00:00Z").getUTCDay();
   const em = email.trim().toLowerCase();
