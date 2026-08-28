@@ -378,25 +378,25 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
           </>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="flex flex-col gap-1">
               {slots.map(sl => {
                 const on = slot === sl.time;
                 const off = sl.left === 0;
                 return (
                   <button type="button" key={sl.time} disabled={off}
                     onClick={() => setSlot(sl.time)}
-                    className={`border rounded-lg px-2 py-1.5 text-sm text-left ${
+                    className={`border rounded-lg px-3 py-1 text-sm flex items-center justify-between ${
                       off ? "bg-black/5 border-black/10 text-black/35 cursor-not-allowed"
                         : on ? "bg-ea-olive text-white border-ea-olive"
                         : "border-black/15 hover:border-ea-olive/60"}`}>
-                    {fmt(sl.time)}
-                    <span className={`block text-xs ${off ? "text-black/30" : on ? "text-white/80" : "text-ea-espresso/60"}`}>
+                    <span>{fmt(sl.time)}</span>
+                    <span className={`text-xs ${off ? "text-black/30" : on ? "text-white/80" : "text-ea-espresso/60"}`}>
                       {off ? "unavailable" : `${sl.left} spot${sl.left === 1 ? "" : "s"}`}
                     </span>
                   </button>
                 );
               })}
-              {slots.every(s => s.left === 0) && <p className="col-span-2 text-sm text-ea-espresso/60">No open slots this day.</p>}
+              {slots.every(s => s.left === 0) && <p className="text-sm text-ea-espresso/60">No open slots this day.</p>}
             </div>
             <input required placeholder="Your name" value={name} onChange={e => setName(e.target.value)} className="border border-black/20 rounded-lg px-3 py-2" />
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="border border-black/20 rounded-lg px-3 py-2" />
