@@ -82,6 +82,7 @@ export default function Account() {
               {msg && <p className="text-sm text-ea-brown">{msg}</p>}
             </div>
           )}
+          {user.is_admin && <a className="btn btn--accent text-center" href="/admin">Schedule Admin</a>}
           <button className="btn" onClick={logout}>Sign out</button>
         </div>
       ) : (
