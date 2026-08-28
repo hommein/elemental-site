@@ -109,12 +109,127 @@ function fmtWk(d: Date) { return d.toISOString().slice(0, 10); }
 function curSun() { const n = new Date(); const d = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d; }
 const VENMO = "https://account.venmo.com/u/Katelyn-Carano";
 
+
+/* ---- tiny dependency-free SVG charts ---- */
+const CH = { gold: "#f0bd65", brown: "#9f664a", tan: "#bd8f71", olive: "#7f6436", cream: "#e9cbb1", sky: "#7ab8d9", green: "#7fb069" };
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div className="bg-white border border-ea-accent/40 rounded-lg p-3">
+    <div className="text-xs font-semibold text-ea-espresso/70 mb-2">{title}</div>{children}</div>;
+}
+function StackBars({ rows, series, labels, money }: {
+  rows: number[][]; series: { name: string; color: string }[]; labels: string[]; money?: boolean }) {
+  const totals = rows.map(r => r.reduce((a, b) => a + b, 0));
+  const max = Math.max(1, ...totals);
+  const n = rows.length, bw = 100 / n;
+  const fmt = (v: number) => money ? "$" + Math.round(v) : String(Math.round(v));
+  return (<div>
+    <svg viewBox="0 0 100 46" className="w-full" preserveAspectRatio="none">
+      {rows.map((r, i) => { let y = 40; return r.map((v, j) => {
+        const h = (v / max) * 36; y -= h;
+        return <rect key={i + "-" + j} x={i * bw + bw * 0.15} y={y} width={bw * 0.7} height={h} fill={series[j].color} rx="0.6" />;
+      }); })}
+      {totals.map((t, i) => t > 0 &&
+        <text key={i} x={i * bw + bw / 2} y={38 - (t / max) * 36} textAnchor="middle" fontSize="3.2" fill="#5a463a">{fmt(t)}</text>)}
+      <line x1="0" y1="40" x2="100" y2="40" stroke="#e0d5cc" strokeWidth="0.4" />
+    </svg>
+    <div className="flex text-[9px] text-ea-espresso/50">
+      {labels.map((l, i) => <span key={i} className="text-center" style={{ width: bw + "%" }}>{l}</span>)}
+    </div>
+    {series.length > 1 && <div className="flex gap-3 mt-1">
+      {series.map(s => <span key={s.name} className="text-[10px] flex items-center gap-1">
+        <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} />{s.name}</span>)}
+    </div>}
+  </div>);
+}
+function HBars({ items, color }: { items: { label: string; n: number }[]; color: string }) {
+  const max = Math.max(1, ...items.map(i => i.n));
+  return <div className="space-y-1">
+    {items.map(it => <div key={it.label} className="flex items-center gap-2 text-xs">
+      <span className="w-32 truncate text-right text-ea-espresso/70">{it.label}</span>
+      <div className="flex-1 bg-ea-cream/30 rounded h-4 relative">
+        <div className="h-4 rounded" style={{ width: (it.n / max) * 100 + "%", background: color }} />
+        <span className="absolute inset-y-0 left-1.5 flex items-center text-[10px] font-semibold text-ea-espresso/80">{it.n}</span>
+      </div>
+    </div>)}
+    {!items.length && <p className="text-xs opacity-50 italic">no data yet</p>}
+  </div>;
+}
+function Donut({ parts }: { parts: { label: string; n: number; color: string }[] }) {
+  const tot = parts.reduce((s, p) => s + p.n, 0);
+  if (!tot) return <p className="text-xs opacity-50 italic">no data yet</p>;
+  let acc = 0; const R = 15.9155;
+  return <div className="flex items-center gap-4">
+    <svg viewBox="0 0 42 42" className="w-24 h-24 shrink-0">
+      {parts.filter(p => p.n > 0).map(p => {
+        const frac = p.n / tot, off = acc; acc += frac;
+        return <circle key={p.label} cx="21" cy="21" r={R} fill="none" stroke={p.color} strokeWidth="7"
+          strokeDasharray={`${frac * 100} ${100 - frac * 100}`} strokeDashoffset={25 - off * 100} />;
+      })}
+      <text x="21" y="22.5" textAnchor="middle" fontSize="7" fontWeight="600" fill="#5a463a">{tot}</text>
+    </svg>
+    <div className="space-y-0.5">
+      {parts.map(p => <div key={p.label} className="text-[11px] flex items-center gap-1.5">
+        <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: p.color }} />
+        {p.label} — <b>{p.n}</b> ({Math.round(p.n / tot * 100)}%)</div>)}
+    </div>
+  </div>;
+}
+function TrendsSection() {
+  const [st, setSt] = useState<any>(null);
+  const [open, setOpen] = useState(true);
+  useEffect(() => { fetch("/api/admin/stats?weeks=12").then(r => r.json()).then(setSt); }, []);
+  if (!st?.weeks) return null;
+  const wk = st.weeks as any[];
+  const wl = wk.map((w: any, i: number) => (i % 2 === wk.length % 2) ? "" :
+    new Date(w.week + "T00:00:00Z").toLocaleString("en-US", { month: "numeric", day: "numeric", timeZone: "UTC" }));
+  const catColor: Record<string, string> = { aerial: CH.gold, flex: CH.cream, flow: CH.tan, dance: CH.brown, community: CH.sky, selah: "#cccccc" };
+  return (<div className="mb-5">
+    <button className="text-sm font-semibold text-ea-espresso/70 mb-2" onClick={() => setOpen(o => !o)}>
+      📈 Studio trends (last 12 weeks) {open ? "▾" : "▸"}</button>
+    {open && <div className="grid gap-3 md:grid-cols-2">
+      <ChartCard title="Attendance per week">
+        <StackBars rows={wk.map(w => [w.signups, w.opengym])} labels={wl}
+          series={[{ name: "class signups", color: CH.gold }, { name: "open gym", color: CH.tan }]} />
+      </ChartCard>
+      <ChartCard title="Payments logged per week ($)">
+        <StackBars rows={wk.map(w => [w.revenue])} labels={wl} money series={[{ name: "$", color: CH.green }]} />
+      </ChartCard>
+      <ChartCard title="New students & packs sold per week">
+        <StackBars rows={wk.map(w => [w.new_users, w.packs])} labels={wl}
+          series={[{ name: "new accounts", color: CH.sky }, { name: "packs sold", color: CH.olive }]} />
+      </ChartCard>
+      <ChartCard title="Most popular classes (90 days)">
+        <HBars items={(st.topClasses || []).map((t: any) => ({ label: t.title, n: t.n }))} color={CH.gold} />
+      </ChartCard>
+      <ChartCard title="Busiest days (90 days)">
+        <StackBars rows={(st.byDay || []).map((d: any) => [d.cls, d.og])} labels={DAYS}
+          series={[{ name: "classes", color: CH.gold }, { name: "open gym", color: CH.tan }]} />
+      </ChartCard>
+      <div className="grid gap-3">
+        <ChartCard title="How classes were paid (90 days)">
+          <Donut parts={[
+            { label: "pack", n: st.payMix?.pack || 0, color: CH.gold },
+            { label: "venmo", n: st.payMix?.venmo || 0, color: CH.sky },
+            { label: "cash", n: st.payMix?.cash || 0, color: CH.green },
+            { label: "unset", n: st.payMix?.unset || 0, color: "#d8d0c8" }]} />
+        </ChartCard>
+        <ChartCard title="Signups by category (90 days)">
+          <Donut parts={Object.entries(st.byCat || {}).map(([label, n]: any) =>
+            ({ label, n, color: catColor[label] || "#d8d0c8" }))} />
+        </ChartCard>
+      </div>
+    </div>}
+  </div>);
+}
+
 function TallyTab() {
   const [scale, setScale] = useState<"week" | "month">("week");
   const [week, setWeek] = useState(() => fmtWk(curSun()));
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState("active");
   const range = () => {
     if (scale === "week") return { start: week, end: "" };
     const [y, m] = month.split("-").map(Number);
@@ -150,6 +265,7 @@ function TallyTab() {
           : new Date(month + "-15T00:00:00Z").toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</strong>
         <button className="btn" onClick={() => shift(1)}>›</button>
       </div>
+      <TrendsSection />
       {(() => {
         const ppl = data.people as any[];
         const r = range();
@@ -184,8 +300,39 @@ function TallyTab() {
           </div>
         );
       })()}
-      {[...data.people].sort((a: any, b: any) =>
-        (b.classes.length + b.opengym.length) - (a.classes.length + a.opengym.length)).map((p: any) => {
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <input className="border border-ea-accent/50 rounded px-2.5 py-1.5 text-sm w-56" placeholder="🔍 Search name or email…"
+          value={q} onChange={e => setQ(e.target.value)} />
+        <label className="text-xs text-ea-espresso/60 ml-1">sort by</label>
+        <select className="border border-ea-accent/50 rounded px-2 py-1.5 text-sm bg-white" value={sort} onChange={e => setSort(e.target.value)}>
+          <option value="active">Most active</option>
+          <option value="name">Name A–Z</option>
+          <option value="owes">Owes money first</option>
+          <option value="pack">Pack remaining (low first)</option>
+          <option value="paid">Most paid ($)</option>
+          <option value="newest">Newest member</option>
+        </select>
+      </div>
+      {(() => {
+        const norm = (s: any) => String(s || "").toLowerCase();
+        const qq = norm(q.trim());
+        const tk = (p: any) => p.classes.length + p.opengym.length;
+        const pkRem = (p: any) => { const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return k ? k.remaining : 9999; };
+        const owesF = (p: any) => { const t = tk(p); const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return t > 0 && (!k || k.remaining < t); };
+        const paidT = (p: any) => (p.payments || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
+        const cmp: Record<string, (a: any, b: any) => number> = {
+          active: (a, b) => tk(b) - tk(a),
+          name: (a, b) => norm(a.name || a.email).localeCompare(norm(b.name || b.email)),
+          owes: (a, b) => Number(owesF(b)) - Number(owesF(a)) || tk(b) - tk(a),
+          pack: (a, b) => pkRem(a) - pkRem(b),
+          paid: (a, b) => paidT(b) - paidT(a),
+          newest: (a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")),
+        };
+        const shown = [...data.people]
+          .filter((p: any) => !qq || norm(p.name).includes(qq) || norm(p.email).includes(qq))
+          .sort(cmp[sort] || cmp.active);
+        if (!shown.length) return <p className="text-sm opacity-60 italic">No members match "{q}".</p>;
+        return shown.map((p: any) => {
         const taken = p.classes.length + p.opengym.length;
         const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
         const owes = taken > 0 && (!pack || pack.remaining < taken);
@@ -268,7 +415,8 @@ function TallyTab() {
             </div>
           </div>
         );
-      })}
+      });
+      })()}
     </div>
   );
 }
