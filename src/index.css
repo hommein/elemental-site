@@ -1,5 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Montserrat:wght@300;400;500;600;700&display=swap');
 
+/* Tailwind v4 — utilities + theme only (preflight skipped so existing styles stay intact) */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  --color-ea-accent: #bd8f71;
+  --color-ea-accent-soft: #dbb598;
+  --color-ea-cream: #e9cbb1;
+  --color-ea-gold: #f0bd65;
+  --color-ea-olive: #7f6436;
+  --color-ea-brown: #9f664a;
+  --color-ea-espresso: #4b3d34;
+  --color-ea-ink: #151515;
+  --color-ea-paper: #f7f3f0;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Montserrat", "Open Sans", system-ui, sans-serif;
+}
+
+
 :root {
   /* Elemental Aerial Arts design tokens (official brand bible) */
   --ea-accent: #bd8f71;        /* brand clay */
