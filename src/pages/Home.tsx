@@ -36,8 +36,8 @@ export default function Home() {
       </section>
 
       <section className="bg-ea-cream">
-        <div className="container !py-10 grid md:grid-cols-2 gap-10 items-center">
-          <img src="/photos/sunset.jpg" alt="Sunset aerial performance" loading="lazy" className="rounded-[10px] w-full max-h-[340px] object-cover" />
+        <div className="container grid md:grid-cols-2 gap-10 items-center">
+          <img src="/photos/sunset.jpg" alt="Sunset aerial performance" loading="lazy" className="rounded-[10px] w-full" />
           <div>
             <h2 className="mt-0 mb-4">Dance With Us!</h2>
             <p className="mb-4">Aerial is a dance form, a workout, an avenue for self-expression &amp;
@@ -51,14 +51,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="container !py-10 grid md:grid-cols-2 gap-10 items-center">
+      <section className="container grid md:grid-cols-2 gap-10 items-center">
         <div>
           <h2 className="mt-0 mb-4">Open Gym</h2>
           <p className="mb-6">Have your own apparatus or a self-led practice? Open studio training time is
             available &amp; encouraged for members and regular students.</p>
           <a className="btn" href="/classes">See Times &amp; How to Book</a>
         </div>
-        <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full max-h-[340px] object-cover object-bottom max-md:order-first" />
+        <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full max-md:order-first" />
       </section>
 
       <section className="bg-ea-espresso text-center">
