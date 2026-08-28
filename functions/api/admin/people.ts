@@ -9,10 +9,14 @@ async function admin(env: AuthEnv, request: Request) {
 export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => {
   if (!await admin(env, request)) return json({ error: "Admin only" }, 403);
   const url = new URL(request.url);
-  const week = url.searchParams.get("week") || "";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) return json({ error: "week=YYYY-MM-DD required" }, 400);
-  const end = new Date(week + "T00:00:00Z"); end.setUTCDate(end.getUTCDate() + 7);
-  const weekEnd = end.toISOString().slice(0, 10);
+  const D = /^\d{4}-\d{2}-\d{2}$/;
+  let week = url.searchParams.get("start") || url.searchParams.get("week") || "";
+  let weekEnd = url.searchParams.get("end") || "";
+  if (!D.test(week)) return json({ error: "start/week=YYYY-MM-DD required" }, 400);
+  if (!D.test(weekEnd)) {
+    const end = new Date(week + "T00:00:00Z"); end.setUTCDate(end.getUTCDate() + 7);
+    weekEnd = end.toISOString().slice(0, 10);
+  }
 
   const users = (await env.DB.prepare("SELECT id,name,email FROM users ORDER BY name").all()).results as any[];
   const su = (await env.DB.prepare(

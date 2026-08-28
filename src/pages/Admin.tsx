@@ -108,13 +108,24 @@ function curSun() { const n = new Date(); const d = new Date(Date.UTC(n.getFullY
 const VENMO = "https://account.venmo.com/u/Katelyn-Carano";
 
 function TallyTab() {
+  const [scale, setScale] = useState<"week" | "month">("week");
   const [week, setWeek] = useState(() => fmtWk(curSun()));
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
-  const load = (w: string) => fetch("/api/admin/people?week=" + w).then(r => r.json()).then(setData);
-  useEffect(() => { load(week); }, [week]);
-  const shift = (n: number) => { const d = new Date(week + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 7 * n); setWeek(fmtWk(d)); };
-  const post = async (body: any) => { setBusy(true); await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); await load(week); setBusy(false); };
+  const range = () => {
+    if (scale === "week") return { start: week, end: "" };
+    const [y, m] = month.split("-").map(Number);
+    const end = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+    return { start: `${month}-01`, end };
+  };
+  const load = () => { const r = range(); return fetch(`/api/admin/people?start=${r.start}${r.end ? "&end=" + r.end : ""}`).then(r => r.json()).then(setData); };
+  useEffect(() => { load(); }, [week, month, scale]);
+  const shift = (n: number) => {
+    if (scale === "week") { const d = new Date(week + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 7 * n); setWeek(fmtWk(d)); }
+    else { const [y, m] = month.split("-").map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); setMonth(d.toISOString().slice(0, 7)); }
+  };
+  const post = async (body: any) => { setBusy(true); await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); await load(); setBusy(false); };
 
   if (!data) return <p>Loading…</p>;
   if (!data.people) return <p>Admins only.</p>;
@@ -122,7 +133,15 @@ function TallyTab() {
     <div>
       <div className="flex items-center gap-3 mb-4">
         <button className="btn" onClick={() => shift(-1)}>‹</button>
-        <strong>Week of {week}</strong>
+        <span className="inline-flex rounded overflow-hidden border border-black/20 mr-2">
+          {(["week", "month"] as const).map(sc => (
+            <button key={sc} onClick={() => setScale(sc)}
+              className={`px-2 py-0.5 text-xs ${scale === sc ? "bg-ea-espresso text-white" : "bg-white"}`}>
+              {sc === "week" ? "Week" : "Month"}
+            </button>
+          ))}
+        </span>
+        <strong>{scale === "week" ? `Week of ${week}` : new Date(month + "-15T00:00:00Z").toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</strong>
         <button className="btn" onClick={() => shift(1)}>›</button>
       </div>
       {data.people.map((p: any) => {
@@ -130,14 +149,14 @@ function TallyTab() {
         const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
         const owes = taken > 0 && (!pack || pack.remaining < taken);
         const smsBody = encodeURIComponent(
-          `Hi ${p.name?.split(" ")[0] || ""}! This week at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
+          `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} of ${pack.size} classes left.` : "") +
           (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
         return (
           <div key={p.email} className="border border-ea-accent/40 rounded p-3 mb-3">
             <div className="flex flex-wrap items-baseline gap-x-3">
               <strong>{p.name}</strong><span className="text-sm opacity-70">{p.email}</span>
-              <span className="ml-auto font-semibold">{taken} class{taken === 1 ? "" : "es"} this week</span>
+              <span className="ml-auto font-semibold">{taken} class{taken === 1 ? "" : "es"} this {scale}</span>
             </div>
             <div className="text-sm mt-1">
               {p.classes.map((c: any, i: number) => <div key={i}>{c.date} · {c.time} {c.title}</div>)}
