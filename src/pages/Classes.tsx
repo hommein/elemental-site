@@ -12,13 +12,20 @@ const OG_CAP = 4;
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const CAT: Record<string, string> = {
-  aerial: "bg-ea-accent/15 border-ea-accent/40",
-  flex: "bg-ea-gold/15 border-ea-gold/50",
-  flow: "bg-ea-gold/15 border-ea-gold/50",
-  dance: "bg-ea-brown/10 border-ea-brown/30",
-  community: "bg-ea-olive/15 border-ea-olive/40",
-  selah: "bg-black/5 border-black/15",
+  aerial: "bg-ea-accent/40 border-ea-accent",
+  flex: "bg-ea-gold/40 border-ea-gold",
+  flow: "bg-ea-olive/25 border-ea-olive",
+  dance: "bg-ea-brown/30 border-ea-brown",
+  community: "bg-ea-cream border-ea-soft",
+  selah: "bg-white border-black/25",
 };
+const CAT_LABEL: [string, string][] = [
+  ["Aerial", "aerial"], ["Flex", "flex"], ["Flow", "flow"],
+  ["Dance", "dance"], ["Community", "community"], ["Selah Dance", "selah"],
+];
+
+const SELAH_URL = "https://selah.dance/classes-and-workshops";
+const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 
 function fmt(t: string) {
   const [h, m] = t.split(":").map(Number);
@@ -57,6 +64,38 @@ export default function Classes() {
     return m;
   }, [data]);
 
+  const [t0, t1] = useMemo(() => {
+    let a = Infinity, b = -Infinity;
+    data?.classes.forEach(c => { const s = toMin(c.time); a = Math.min(a, s); b = Math.max(b, s + c.duration_min); });
+    if (!isFinite(a)) return [480, 1260];
+    return [Math.min(480, Math.floor(a / 60) * 60), Math.max(1260, Math.ceil(b / 60) * 60)];
+  }, [data]);
+  const gridH = `${((t1 - t0) / 30) * 3}rem`;
+  const hours = useMemo(() => {
+    const out: number[] = [];
+    for (let h = t0 / 60; h <= t1 / 60; h++) out.push(h);
+    return out;
+  }, [t0, t1]);
+
+  // absolute placement within a day column; side-by-side lanes when times overlap
+  function placed(list: Cls[]) {
+    const sorted = [...list].sort((a, b) => toMin(a.time) - toMin(b.time));
+    const spans = sorted.map(c => ({ c, s: toMin(c.time), e: toMin(c.time) + c.duration_min }));
+    const laneEnd = [0, 0];
+    return spans.map(({ c, s, e }) => {
+      const lane = laneEnd[0] <= s ? 0 : 1;
+      laneEnd[lane] = e;
+      const crowded = spans.some(o => o.c !== c && o.s < e && o.e > s);
+      return {
+        c,
+        top: `${((s - t0) / 30) * 3}rem`,
+        h: `calc(${((e - s) / 30) * 3}rem - 3px)`,
+        left: crowded && lane === 1 ? "50%" : "0",
+        width: crowded ? "50%" : "100%",
+      };
+    });
+  }
+
   return (
     <section className="container py-10">
       <h1 className="font-serif text-4xl mb-2">Classes &amp; Schedule</h1>
@@ -64,6 +103,7 @@ export default function Classes() {
         Aerial for all levels, flexibility &amp; handstands, flow arts, and dance.
         All classes are one hour. Aerial classes are $30 drop-in or $110 for a 4-pack;
         flex &amp; flow classes are donation-based ($12 suggested).
+        Open Gym is $10 per session — or unlimited with an Open Gym membership.
       </p>
 
       <div className="flex items-center gap-3 mb-6">
@@ -75,35 +115,23 @@ export default function Classes() {
         {week && <button className="text-sm underline" onClick={() => setWeek(null)}>today</button>}
       </div>
 
+      <div className="flex flex-wrap gap-2 mb-5 text-xs">
+        {CAT_LABEL.map(([label, k]) => (
+          <span key={k} className={`border rounded-full px-2.5 py-0.5 ${CAT[k]}`}>{label}</span>
+        ))}
+      </div>
+
       {err && <p className="text-red-700">{err}</p>}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 lg:gap-2">
+      {/* ---- mobile: stacked day lists ---- */}
+      <div className="grid gap-4 md:grid-cols-2 lg:hidden">
         {DAYS.map((d, i) => (
           <div key={d}>
             <h3 className="font-serif text-lg border-b border-ea-accent/50 pb-1 mb-2">
               {d} <span className="text-sm text-ea-espresso/60">{data && prettyDate(data.dates[i])}</span>
             </h3>
             <div className="flex flex-col gap-2">
-              {byDay[i].map(c => {
-                const full = c.taken >= c.capacity;
-                return (
-                  <button key={c.id}
-                    onClick={() => c.pricing !== "external" && setSel(c)}
-                    className={`text-left border rounded-lg px-2.5 py-2 text-sm transition
-                      ${CAT[c.category] ?? "bg-black/5 border-black/10"}
-                      ${c.pricing === "external" ? "cursor-default opacity-70" : "hover:shadow-md"}`}>
-                    <div className="font-medium leading-tight">{c.title}</div>
-                    <div className="text-xs text-ea-espresso/70">
-                      {fmt(c.time)}{c.instructor ? ` · ${c.instructor}` : ""} · {c.room}
-                    </div>
-                    {c.pricing === "external"
-                      ? <div className="text-xs italic mt-0.5">via Selah Dance</div>
-                      : <div className={`text-xs mt-0.5 ${full ? "text-red-700" : "text-ea-olive"}`}>
-                          {full ? "Full" : `${c.capacity - c.taken} of ${c.capacity} spots open`}
-                        </div>}
-                  </button>
-                );
-              })}
+              {byDay[i].map(c => <Tile key={c.id} c={c} onPick={() => setSel(c)} />)}
               {byDay[i].length === 0 && <p className="text-sm text-ea-espresso/50">—</p>}
               <button onClick={() => setOgDay(i)}
                 className="text-left border border-dashed border-ea-olive/50 rounded-lg px-2.5 py-2 text-sm text-ea-olive hover:bg-ea-olive/10">
@@ -114,6 +142,46 @@ export default function Classes() {
         ))}
       </div>
 
+      {/* ---- desktop: chronological time grid ---- */}
+      <div className="hidden lg:grid gap-x-1.5"
+        style={{ gridTemplateColumns: "3.2rem repeat(7, minmax(0, 1fr))" }}>
+        <div />
+        {DAYS.map((d, i) => (
+          <h3 key={d} className="font-serif text-base border-b border-ea-accent/50 pb-1 mb-1 text-center">
+            {d}<span className="block text-xs font-sans text-ea-espresso/60">{data && prettyDate(data.dates[i])}</span>
+          </h3>
+        ))}
+
+        {/* hour gutter */}
+        <div className="relative" style={{ height: gridH }}>
+          {hours.map(h => (
+            <span key={h} className="absolute right-1 -translate-y-1/2 text-[11px] text-ea-espresso/50"
+              style={{ top: `${((h * 60 - t0) / 30) * 3}rem` }}>{fmt(String(h) + ":00")}</span>
+          ))}
+        </div>
+
+        {/* day columns */}
+        {DAYS.map((_, i) => (
+          <div key={i} className="relative rounded-md"
+            style={{ height: gridH, backgroundImage: "repeating-linear-gradient(to bottom, rgba(0,0,0,.07) 0 1px, transparent 1px 6rem)" }}>
+            {placed(byDay[i]).map(({ c, top, h, left, width }) => (
+              <div key={c.id} className="absolute px-px" style={{ top, height: h, left, width }}>
+                <Tile c={c} abs onPick={() => setSel(c)} />
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {/* aligned open-gym row */}
+        <div />
+        {DAYS.map((_, i) => (
+          <button key={i} onClick={() => setOgDay(i)}
+            className="mt-2 border border-dashed border-ea-olive/50 rounded-lg px-2 py-2 text-xs text-ea-olive hover:bg-ea-olive/10">
+            + Book Open Gym
+          </button>
+        ))}
+      </div>
+
       {sel && <SignupModal cls={sel} onClose={(changed) => { setSel(null); if (changed) setTick(t => t + 1); }} />}
       {ogDay !== null && data && (
         <OpenGymModal day={ogDay} data={data}
@@ -121,6 +189,31 @@ export default function Classes() {
       )}
     </section>
   );
+}
+
+function Tile({ c, onPick, abs }: { c: Cls; onPick: () => void; abs?: boolean }) {
+  const full = c.taken >= c.capacity;
+  const ext = c.pricing === "external";
+  const cls = `text-left border rounded-lg overflow-hidden transition block
+    ${abs ? "h-full w-full px-1.5 py-1 text-xs leading-tight" : "px-2.5 py-2 text-sm"}
+    ${CAT[c.category] ?? "bg-black/5 border-black/10"}
+    ${ext ? "hover:shadow-md" : "hover:shadow-md"}`;
+  const body = (
+    <>
+      <div className="font-medium leading-tight truncate">{c.title}</div>
+      <div className={`text-ea-espresso/70 truncate ${abs ? "text-[11px]" : "text-xs"}`}>
+        {fmt(c.time)}{c.instructor ? ` · ${c.instructor}` : ""}{abs ? "" : ` · ${c.room}`}
+      </div>
+      {ext
+        ? <div className={`italic ${abs ? "text-[11px]" : "text-xs mt-0.5"}`}>via Selah Dance ↗</div>
+        : <div className={`${abs ? "text-[11px]" : "text-xs mt-0.5"} ${full ? "text-red-700" : "text-ea-olive"}`}>
+            {full ? "Full" : `${c.capacity - c.taken}/${c.capacity} open`}
+          </div>}
+    </>
+  );
+  return ext
+    ? <a href={SELAH_URL} target="_blank" rel="noreferrer" className={cls}>{body}</a>
+    : <button onClick={onPick} className={cls}>{body}</button>;
 }
 
 function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) => void }) {
@@ -220,7 +313,8 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="font-serif text-2xl mb-1">Open Gym — {DAYS[day]} {prettyDate(date)}</h3>
         <p className="text-sm text-ea-espresso/70 mb-4">
-          Train independently in any open one-hour slot. $30 drop-in or 4-pack. Pick a time &amp; room:
+          Train independently in any open one-hour slot. $10 per session, or free with an
+          Open Gym membership. Pick a time &amp; room:
         </p>
         {state === "done" ? (
           <>
