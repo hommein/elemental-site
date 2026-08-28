@@ -233,8 +233,27 @@ function TallyTab() {
                     <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: 1 })}>+1</button>
                   </>}
                 </div>
-                {p.payments.length > 0 && <div className="text-xs opacity-70 mt-1">
-                  Recent: {p.payments.slice(0, 3).map((pm: any) => `$${pm.amount} ${pm.method} ${pm.date}`).join(" · ")}
+                {p.payments.length > 0 && <div className="mt-2">
+                  <div className="text-[11px] uppercase tracking-wide opacity-50 mb-0.5">Payments logged</div>
+                  {p.payments.map((pm: any) => (
+                    <div key={pm.id} className="text-sm flex items-center gap-2 py-0.5 border-b border-ea-accent/15 last:border-0">
+                      <span className="opacity-60 w-24 shrink-0">{new Date(pm.date + "T00:00:00Z").toLocaleString("en-US", { month: "short", day: "numeric", year: "2-digit", timeZone: "UTC" })}</span>
+                      <b className="w-14">${pm.amount}</b>
+                      <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " + (pm.method === "venmo" ? "bg-sky-100 text-sky-800" : "bg-emerald-100 text-emerald-800")}>{pm.method}</span>
+                      {pm.note && <span className="text-xs opacity-60 truncate">{pm.note}</span>}
+                      <span className="ml-auto flex gap-1">
+                        <button className="text-xs underline opacity-60 hover:opacity-100" disabled={busy} onClick={() => {
+                          const a = prompt("Amount ($)?", String(pm.amount)); if (a === null) return;
+                          const m = prompt("Method? (venmo/cash)", pm.method) || pm.method;
+                          const d = prompt("Date (YYYY-MM-DD)?", pm.date) || pm.date;
+                          post({ op: "edit_payment", id: pm.id, amount: +a, method: m, date: d });
+                        }}>edit</button>
+                        <button className="text-xs underline text-red-700/70 hover:text-red-700" disabled={busy} onClick={() => {
+                          if (confirm(`Delete $${pm.amount} ${pm.method} payment on ${pm.date}?`)) post({ op: "delete_payment", id: pm.id });
+                        }}>delete</button>
+                      </span>
+                    </div>
+                  ))}
                 </div>}
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "10"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}

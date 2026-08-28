@@ -56,6 +56,9 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     if (!b.user_id || !(b.amount > 0)) return json({ error: "user_id + amount" }, 400);
     await D.prepare("INSERT INTO payments (user_id,amount,method,note,date) VALUES (?1,?2,?3,?4,COALESCE(?5,date('now')))")
       .bind(b.user_id, b.amount, b.method || "venmo", b.note || null, b.date || null).run();
+  } else if (b.op === "edit_payment") {
+    await D.prepare("UPDATE payments SET amount=COALESCE(?2,amount), method=COALESCE(?3,method), date=COALESCE(?4,date), note=COALESCE(?5,note) WHERE id=?1")
+      .bind(b.id, b.amount ?? null, b.method ?? null, b.date ?? null, b.note ?? null).run();
   } else if (b.op === "delete_payment") {
     await D.prepare("DELETE FROM payments WHERE id=?1").bind(b.id).run();
   } else return json({ error: "unknown op" }, 400);
