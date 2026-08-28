@@ -1,4 +1,5 @@
 import { me } from "../lib/user";
+import { openGcal } from "../lib/cal";
 import { useEffect, useMemo, useState } from "react";
 
 type Cls = {
@@ -379,6 +380,11 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
         {state === "done" ? (
           <>
             <p className="text-ea-olive font-medium mb-4">{msg}</p>
+            <button className="btn w-full mb-2" onClick={() =>
+              openGcal(cls.title, cls.date, cls.time, cls.duration_min || 60,
+                cls.instructor ? `Instructor: ${cls.instructor}` : "")}>
+              📅 Add to Google Calendar
+            </button>
             <button className="btn btn--accent w-full" onClick={() => onClose(true)}>Done</button>
           </>
         ) : (
@@ -455,6 +461,9 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
         {state === "done" ? (
           <>
             <p className="text-ea-olive font-medium mb-4">{msg}</p>
+            {slot && <button className="btn w-full mb-2" onClick={() => openGcal("Open Gym", date, slot, 60)}>
+              📅 Add to Google Calendar
+            </button>}
             <button className="btn btn--accent w-full" onClick={() => onClose(true)}>Done</button>
           </>
         ) : (
