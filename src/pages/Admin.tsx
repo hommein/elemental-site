@@ -119,7 +119,7 @@ const groupOf = (c: { title: string; category?: string; instructor?: string | nu
   : c.title === "Belly Dance" || (c.instructor && GUESTS.has(c.instructor)) ? "guest" : "aerial";
 const GCOLOR: Record<string, string> = { aerial: CH.gold, flex: CH.tan, guest: CH.olive, selah: "#c9c9c9", jam: "#e8b3cf" };
 const GLABEL: Record<string, string> = { aerial: "Aerial", flex: "Flex", guest: "Guest Instructors", selah: "Selah Dance", jam: "Community Jam" };
-const GORDER = ["aerial", "flex", "guest", "jam", "selah"];
+const GORDER = ["aerial", "flex", "guest", "jam"];
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return <div className="bg-white border border-ea-accent/40 rounded-lg p-3">
     <div className="text-xs font-semibold text-ea-espresso/70 mb-2">{title}</div>{children}</div>;
@@ -326,7 +326,7 @@ function TallyTab() {
             </ChartCard>
             <ChartCard title={scale === "week" ? "Busiest days (this week)" : "Attendance by week (last 5 weeks)"}>
               {(() => {
-                const GB = ["aerial", "flex", "guest", "selah"];
+                const GB = ["aerial", "flex", "guest"];
                 const series = [...GB.map(k => ({ name: GLABEL[k], color: GCOLOR[k] })), { name: "Open Gym & Jam", color: GCOLOR.jam }];
                 const dow = (d: string) => new Date(d + "T00:00:00Z").getUTCDay();
                 if (scale === "week")
