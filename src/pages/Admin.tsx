@@ -6,107 +6,203 @@ const today = () => new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10)
 const nextDay = (d: string) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); };
 import { me } from "../lib/user";
 
-type Cls = { id?: number; title: string; instructor: string | null; day: number; time: string;
-  duration_min: number; category: string | null; pricing: string | null; capacity: number; active: number; room: string };
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const BLANK: Cls = { title: "", instructor: "", day: 1, time: "09:00", duration_min: 60, category: "", pricing: "", capacity: 8, active: 1, room: "Sun Room" };
+const OVF = ["title", "instructor", "time", "duration_min", "capacity", "room"] as const;
+const stf = (t: string) => { const [h, m] = t.split(":").map(Number); return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${h >= 12 ? "pm" : "am"}`; };
+const sdf = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 function ScheduleTab() {
   const [ok, setOk] = useState<boolean | null>(null);
-  const [rows, setRows] = useState<Cls[]>([]);
-  const [edit, setEdit] = useState<Cls | null>(null);
+  const [wk, setWk] = useState(() => fmtWk(curSun()));
+  const [data, setData] = useState<any>(null);
+  const [base, setBase] = useState<Record<number, any>>({});
+  const [inactive, setInactive] = useState<any[]>([]);
+  const [sel, setSel] = useState<number | null>(null);
+  const [addDay, setAddDay] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
-  const [showInactive, setShowInactive] = useState(false);
 
   async function load() {
-    const r = await fetch("/api/admin/classes");
-    if (!r.ok) { setOk(false); return; }
-    setRows((await r.json()).classes); setOk(true);
+    const [r1, r2] = await Promise.all([fetch(`/api/schedule?week=${wk}`), fetch("/api/admin/classes")]);
+    if (!r2.ok) { setOk(false); return; }
+    const j1 = await r1.json(), j2 = await r2.json();
+    const bm: Record<number, any> = {}; const inact: any[] = [];
+    for (const c of j2.classes) { bm[c.id] = c; if (!c.active && !c.on_date) inact.push(c); }
+    setBase(bm); setInactive(inact); setData(j1); setOk(true);
   }
-  useEffect(() => { me().then(u => u?.is_admin ? load() : setOk(false)); }, []);
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault(); if (!edit) return;
-    const r = await fetch("/api/admin/classes", { method: "POST",
-      headers: { "content-type": "application/json" }, body: JSON.stringify(edit) });
-    const j = await r.json();
-    if (!r.ok) { setMsg(j.error || "Save failed"); return; }
-    setEdit(null); setMsg("Saved."); load();
-  }
-  async function del(id: number) {
-    if (!confirm("Deactivate this class? Existing signups stay in the database.")) return;
-    await fetch("/api/admin/classes", { method: "POST",
-      headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "delete", id }) });
-    load();
-  }
+  useEffect(() => { me().then(u => u?.is_admin ? load() : setOk(false)); }, [wk]);
 
   if (ok === null) return <section className="container py-12"><p>Loading…</p></section>;
   if (!ok) return <section className="container py-12"><p>Admins only — <a className="underline" href="/account">sign in</a> with an admin account.</p></section>;
+  if (!data) return null;
 
-  const shown = rows.filter(r => showInactive || r.active);
-  const inp = "border border-black/20 rounded px-2 py-1 w-full";
-  const F = (label: string, el: React.ReactNode) => (
-    <label className="flex flex-col gap-1 text-sm"><span className="text-ea-espresso/60">{label}</span>{el}</label>);
+  const dates: string[] = data.dates;
+  const rows: any[] = data.classes;
+  const byDay: any[][] = [[], [], [], [], [], [], []];
+  for (const c of rows) byDay[c.day].push(c);
+  const isCur = wk === fmtWk(curSun());
+  const shift = (n: number) => { setSel(null); setAddDay(null); setWk(fmtWk(new Date(Date.parse(wk + "T00:00:00Z") + n * 7 * 864e5))); };
+  const live = rows.filter(c => !c.cancelled);
+  const selC = sel != null ? rows.find(c => c.id === sel) : null;
+  const names = (k: string) => [...new Set(Object.values(base).map((b: any) => b[k]).filter(Boolean))] as string[];
 
   return (
-    <section className="container py-12">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="font-serif text-4xl">Schedule Admin</h1>
-        <div className="flex gap-3 items-center">
-          <label className="text-sm flex gap-1 items-center">
-            <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} /> show inactive
-          </label>
-          <button className="btn btn--accent" onClick={() => { setEdit({ ...BLANK }); setMsg(""); }}>+ New Class</button>
+    <section className="container py-8">
+      <div className="flex items-center gap-3 flex-wrap mb-1">
+        <button className="btn px-3 py-1" onClick={() => shift(-1)}>‹</button>
+        <div>
+          <h2 className="font-display text-2xl leading-none">{isCur ? "This Week" : `Week of ${sdf(dates[0])}`}</h2>
+          <div className="text-sm text-ea-espresso/60">{sdf(dates[0])} – {sdf(dates[6])}{isCur ? "" : " · "}{!isCur && <button className="underline" onClick={() => { setWk(fmtWk(curSun())); setSel(null); setAddDay(null); }}>back to this week</button>}</div>
+        </div>
+        <button className="btn px-3 py-1" onClick={() => shift(1)}>›</button>
+        <div className="text-sm text-ea-espresso/70 ml-auto">
+          {live.length} classes · {rows.reduce((s, c) => s + c.taken, 0)} signups{rows.length - live.length > 0 ? ` · ${rows.length - live.length} cancelled` : ""}
         </div>
       </div>
-      {msg && <p className="mb-4 text-ea-brown">{msg}</p>}
-
-      {edit && (
-        <form onSubmit={save} className="border border-black/15 rounded-xl p-4 mb-8 grid grid-cols-2 md:grid-cols-4 gap-3 bg-ea-cream/30">
-          <div className="col-span-2">{F("Title", <input required className={inp} value={edit.title} onChange={e => setEdit({ ...edit, title: e.target.value })} />)}</div>
-          {F("Instructor", <input className={inp} value={edit.instructor || ""} onChange={e => setEdit({ ...edit, instructor: e.target.value })} />)}
-          {F("Day", <select className={inp} value={edit.day} onChange={e => setEdit({ ...edit, day: Number(e.target.value) })}>
-            {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}</select>)}
-          {F("Start (24h HH:MM)", <input required pattern="\\d{2}:\\d{2}" className={inp} value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value })} />)}
-          {F("Minutes", <input type="number" min={15} step={15} className={inp} value={edit.duration_min} onChange={e => setEdit({ ...edit, duration_min: Number(e.target.value) })} />)}
-          {F("Capacity", <input type="number" min={1} className={inp} value={edit.capacity} onChange={e => setEdit({ ...edit, capacity: Number(e.target.value) })} />)}
-          {F("Room", <select className={inp} value={edit.room} onChange={e => setEdit({ ...edit, room: e.target.value })}>
-            <option>Sun Room</option><option>Foyer</option></select>)}
-          {F("Category", <input className={inp} value={edit.category || ""} onChange={e => setEdit({ ...edit, category: e.target.value })} />)}
-          {F("Pricing", <input className={inp} value={edit.pricing || ""} onChange={e => setEdit({ ...edit, pricing: e.target.value })} />)}
-          {F("Active", <select className={inp} value={edit.active} onChange={e => setEdit({ ...edit, active: Number(e.target.value) })}>
-            <option value={1}>Yes</option><option value={0}>No</option></select>)}
-          <div className="col-span-2 md:col-span-4 flex gap-2">
-            <button className="btn btn--accent" type="submit">{edit.id ? "Save Changes" : "Create Class"}</button>
-            <button className="btn" type="button" onClick={() => setEdit(null)}>Cancel</button>
-          </div>
-        </form>
-      )}
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead><tr className="text-left border-b border-black/20">
-            {["Day", "Time", "Title", "Instructor", "Min", "Cap", "Room", "Active", ""].map(h => <th key={h} className="py-2 pr-3">{h}</th>)}
-          </tr></thead>
-          <tbody>
-            {shown.map(r => (
-              <tr key={r.id} className={`border-b border-black/5 ${r.active ? "" : "opacity-40"}`}>
-                <td className="py-1.5 pr-3">{DAYS[r.day]}</td><td className="pr-3">{r.time}</td>
-                <td className="pr-3 font-medium">{r.title}</td><td className="pr-3">{r.instructor}</td>
-                <td className="pr-3">{r.duration_min}</td><td className="pr-3">{r.capacity}</td>
-                <td className="pr-3">{r.room}</td><td className="pr-3">{r.active ? "✓" : "—"}</td>
-                <td className="whitespace-nowrap">
-                  <button className="underline mr-3" onClick={() => { setEdit({ ...r }); setMsg(""); window.scrollTo(0, 0); }}>edit</button>
-                  {r.active ? <button className="underline text-red-800" onClick={() => del(r.id!)}>deactivate</button> : null}
-                </td>
-              </tr>))}
-          </tbody>
-        </table>
+      <div className="flex gap-3 flex-wrap items-center text-xs text-ea-espresso/70 mb-3">
+        {[...GORDER, "selah"].map(g => <span key={g} className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: GCOLOR[g] }} />{GLABEL[g]}</span>)}
+        <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block bg-ea-gold ring-1 ring-ea-brown" />edited this week</span>
+        <span className="text-ea-espresso/50">— click a class to edit · changes apply to one week or every week</span>
       </div>
+      {msg && <p className="text-sm mb-2 text-ea-olive">{msg}</p>}
+      {(selC || addDay != null) &&
+        <EditPanel key={selC ? `e${selC.id}${selC.date}` : `a${addDay}`} c={selC} b={selC ? base[selC.id] : null}
+          day={addDay ?? selC?.day ?? 1} dates={dates} names={names}
+          onDone={(m: string) => { setMsg(m); setSel(null); setAddDay(null); load(); }}
+          onClose={() => { setSel(null); setAddDay(null); }} />}
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
+        {DAYS.map((dn, d) => (
+          <div key={d} className="min-w-0">
+            <div className={`text-center text-sm py-1 rounded-t-lg ${dates[d] === today() ? "bg-ea-espresso text-white" : "bg-ea-cream/60"}`}>
+              <span className="font-medium">{dn}</span> <span className="opacity-70">{sdf(dates[d]).split(" ")[1]}</span>
+            </div>
+            <div className="flex flex-col gap-1.5 bg-black/[.03] rounded-b-lg p-1.5 min-h-24">
+              {byDay[d].map(c => { const g = groupOf(c); return (
+                <button key={c.id} onClick={() => { setAddDay(null); setSel(c.id === sel ? null : c.id); }}
+                  className={`text-left rounded-lg px-2 py-1.5 border-l-4 text-xs leading-tight transition hover:shadow ${sel === c.id ? "ring-2 ring-ea-espresso" : ""} ${c.cancelled ? "opacity-50" : ""}`}
+                  style={{ background: GCOLOR[g] + "26", borderColor: GCOLOR[g] }}>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-ea-espresso/70">{stf(c.time)}</span>
+                    {c.cancelled ? <span className="text-[10px] font-medium text-red-700 ml-auto">CANCELLED</span> : c.modified ? <span className="w-2 h-2 rounded-full bg-ea-gold ring-1 ring-ea-brown ml-auto" title="edited this week" /> : null}
+                    {c.one_off ? <span className="text-[10px] bg-ea-cream px-1 rounded ml-auto">one-off</span> : null}
+                  </div>
+                  <div className={`font-medium truncate ${c.cancelled ? "line-through" : ""}`}>{c.title}</div>
+                  {c.instructor && <div className="text-ea-espresso/60 truncate">{c.instructor}</div>}
+                  {!c.cancelled && <div className="flex items-center gap-1 mt-1">
+                    <div className="h-1 rounded bg-black/10 flex-1"><div className="h-1 rounded" style={{ width: `${Math.min(100, c.taken / c.capacity * 100)}%`, background: GCOLOR[g] }} /></div>
+                    <span className="text-[10px] text-ea-espresso/60">{c.taken}/{c.capacity}</span>
+                  </div>}
+                </button>); })}
+              <button className="text-xs text-ea-espresso/50 hover:text-ea-espresso border border-dashed border-black/20 rounded-lg py-1 mt-auto"
+                onClick={() => { setSel(null); setAddDay(d); }}>+ add</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {inactive.length > 0 && <details className="mt-6">
+        <summary className="cursor-pointer text-sm text-ea-espresso/60">Removed classes ({inactive.length}) — restore</summary>
+        <div className="flex flex-col gap-1 mt-2">
+          {inactive.map(b => <div key={b.id} className="text-sm flex items-center gap-3">
+            <span>{b.title} · {DAYS[b.day]} {stf(b.time)}{b.instructor ? ` · ${b.instructor}` : ""}</span>
+            <button className="underline text-ea-olive" onClick={async () => { await api({ ...b, active: 1 }); setMsg("Restored " + b.title); load(); }}>restore</button>
+          </div>)}
+        </div>
+      </details>}
     </section>
   );
 }
 
+async function api(body: any) {
+  const r = await fetch("/api/admin/classes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json(); if (!r.ok) throw new Error(j.error || "Failed"); return j;
+}
+
+function EditPanel({ c, b, day, dates, names, onDone, onClose }:
+  { c: any; b: any; day: number; dates: string[]; names: (k: string) => string[]; onDone: (m: string) => void; onClose: () => void }) {
+  const adding = !c;
+  const [f, setF] = useState<any>(() => adding
+    ? { title: "", instructor: "", time: "16:00", duration_min: 60, capacity: 8, room: "Sun Room", category: "aerial", pricing: "dropin", price: "", day, scope: "always" }
+    : { title: c.title, instructor: c.instructor || "", time: c.time, duration_min: c.duration_min, capacity: c.capacity, room: c.room,
+        category: b.category || "", pricing: b.pricing || "dropin", price: b.price ?? "", day: c.day });
+  const [err, setErr] = useState("");
+  const [confirmDel, setConfirmDel] = useState(false);
+  const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
+  const dif = (k: string) => !adding && String(f[k] ?? "") !== String((k === "instructor" ? b[k] || "" : b[k]) ?? "");
+  const inp = (k: string, extra = "") => `border rounded px-2 py-1 w-full ${dif(k) ? "border-ea-gold ring-2 ring-ea-gold/40 bg-ea-gold/10" : "border-black/20"} ${extra}`;
+  const F = (label: string, el: React.ReactNode, w = "") => <label className={`flex flex-col gap-0.5 text-sm ${w}`}><span className="text-ea-espresso/60 text-xs">{label}</span>{el}</label>;
+  const run = (fn: () => Promise<string>) => fn().then(onDone).catch(e => setErr(e.message));
+
+  const diffs = () => {
+    const s: any = {};
+    for (const k of OVF) if (dif(k)) s[k] = k === "duration_min" || k === "capacity" ? Number(f[k]) : f[k];
+    return s;
+  };
+  const baseBody = () => ({ id: c?.id, title: f.title, instructor: f.instructor, day: Number(f.day), time: f.time,
+    duration_min: Number(f.duration_min), category: f.category, pricing: f.pricing, capacity: Number(f.capacity),
+    active: 1, room: f.room, price: f.price === "" ? null : Number(f.price) });
+
+  const saveWeek = () => run(async () => {
+    await api({ op: "override", class_id: c.id, date: c.date, cancelled: c.cancelled ? 1 : 0, set: diffs() });
+    return `Saved ${f.title} for the week of ${sdf(dates[0])} only.`;
+  });
+  const saveAll = () => run(async () => {
+    await api({ ...baseBody(), on_date: b.on_date || null });
+    if (c.cancelled) await api({ op: "override", class_id: c.id, date: c.date, cancelled: 1, set: {} });
+    else await api({ op: "clear_override", class_id: c.id, date: c.date });
+    return b.on_date ? `Saved ${f.title}.` : `Saved ${f.title} for every week.`;
+  });
+  const toggleCancel = () => run(async () => {
+    await api({ op: "override", class_id: c.id, date: c.date, cancelled: c.cancelled ? 0 : 1, set: diffs() });
+    return c.cancelled ? `${c.title} restored for this week.` : `${c.title} cancelled for this week only.`;
+  });
+  const remove = () => run(async () => { await api({ op: "delete", id: c.id }); return `${c.title} removed from the schedule.`; });
+  const create = () => run(async () => {
+    await api({ ...baseBody(), on_date: f.scope === "once" ? dates[Number(f.day)] : null });
+    return f.scope === "once" ? `${f.title} added on ${sdf(dates[Number(f.day)])} only.` : `${f.title} added every ${DAYS[Number(f.day)]}.`;
+  });
+
+  return (
+    <div className="border-2 border-ea-espresso/20 bg-white rounded-xl p-4 mb-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <h3 className="font-display text-lg">{adding ? `New class — ${DAYS[day]} ${sdf(dates[day])}` : `${c.title} — ${DAYS[c.day]} ${sdf(dates[c.day])}`}</h3>
+        {!adding && c.cancelled ? <span className="text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded">cancelled this week</span> : null}
+        {!adding && b.on_date ? <span className="text-xs bg-ea-cream px-2 py-0.5 rounded">one-off class</span> : null}
+        <button className="ml-auto text-sm underline text-ea-espresso/60" onClick={onClose}>close</button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+        {F("Class name", <input className={inp("title")} value={f.title} onChange={set("title")} />, "col-span-2")}
+        {F("Instructor", <><input className={inp("instructor")} list="ea-instr" value={f.instructor} onChange={set("instructor")} />
+          <datalist id="ea-instr">{names("instructor").map(n => <option key={n} value={n} />)}</datalist></>)}
+        {F("Day", <select className={inp("day")} value={f.day} onChange={set("day")} disabled={!adding && !b?.on_date}>
+          {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}</select>)}
+        {F("Start time", <input type="time" className={inp("time")} value={f.time} onChange={set("time")} />)}
+        {F("Minutes", <input type="number" step="15" className={inp("duration_min")} value={f.duration_min} onChange={set("duration_min")} />)}
+        {F("Capacity", <input type="number" className={inp("capacity")} value={f.capacity} onChange={set("capacity")} />)}
+        {F("Room", <><input className={inp("room")} list="ea-room" value={f.room} onChange={set("room")} />
+          <datalist id="ea-room">{names("room").map(n => <option key={n} value={n} />)}</datalist></>)}
+        {F("Category", <><input className={inp("category")} list="ea-cat" value={f.category} onChange={set("category")} />
+          <datalist id="ea-cat">{names("category").map(n => <option key={n} value={n} />)}</datalist></>)}
+        {F("Payment", <select className={inp("pricing")} value={f.pricing} onChange={set("pricing")}>
+          <option value="dropin">standard (packs ok)</option><option value="donation">donation</option><option value="external">paid to instructor</option></select>)}
+        {F("Price $ (blank = default)", <input type="number" className={inp("price")} value={f.price} onChange={set("price")} />)}
+        {adding && F("Repeats", <select className={inp("scope")} value={f.scope} onChange={set("scope")}>
+          <option value="always">every week</option><option value="once">this week only</option></select>)}
+      </div>
+      {!adding && Object.keys(diffs()).length > 0 && <p className="text-xs text-ea-brown mt-2">Highlighted fields differ from the usual schedule — choose how to save.</p>}
+      {err && <p className="text-sm text-red-700 mt-2">{err}</p>}
+      <div className="flex gap-2 mt-3 flex-wrap items-center">
+        {adding ? <button className="btn" onClick={create}>Add Class</button> : <>
+          {!b.on_date && <button className="btn" onClick={saveWeek}>Save · This Week Only</button>}
+          <button className="btn btn--accent" onClick={saveAll}>{b.on_date ? "Save" : "Save · Every Week"}</button>
+          {!b.on_date && <button className="btn" onClick={toggleCancel}>{c.cancelled ? "Restore This Week" : "Cancel This Week"}</button>}
+          <span className="ml-auto" />
+          {confirmDel
+            ? <span className="text-sm">Remove {b.on_date ? "this one-off" : "from ALL weeks"}? <button className="underline text-red-700" onClick={remove}>yes, remove</button> · <button className="underline" onClick={() => setConfirmDel(false)}>no</button></span>
+            : <button className="text-sm underline text-red-700" onClick={() => setConfirmDel(true)}>{b.on_date ? "Delete one-off" : "Remove from all weeks"}</button>}
+        </>}
+      </div>
+    </div>
+  );
+}
 
 function fmtWk(d: Date) { return d.toISOString().slice(0, 10); }
 function curSun() { const n = new Date(); const d = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d; }

@@ -22,6 +22,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!guestExt && pay_method === "external") return err("Pick pack, Venmo, or cash", 400);
   const dow = new Date(date + "T00:00:00Z").getUTCDay();
   if (dow !== cls.day) return err("Date does not match this class's weekday", 400);
+  if (cls.on_date && cls.on_date !== date) return err("This one-time class is only on " + cls.on_date, 400);
+  const ov: any = await env.DB.prepare("SELECT * FROM overrides WHERE class_id=? AND date=?").bind(class_id, date).first();
+  if (ov?.cancelled) return err("This class is cancelled that week", 400);
+  if (ov) for (const f of ["time", "capacity"]) if (ov[f] != null && ov[f] !== "") cls[f] = ov[f];
 
   if (ptEpoch(date, cls.time) <= Date.now()) {
     const u: any = await getUser(env as any, request);

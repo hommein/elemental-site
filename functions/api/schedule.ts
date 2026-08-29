@@ -12,7 +12,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     dates.push(d.toISOString().slice(0, 10));
   }
   const { results: classes } = await env.DB.prepare(
-    "SELECT id,title,instructor,day,time,duration_min,category,pricing,capacity,room,price,pay_note FROM classes WHERE active=1 ORDER BY day,time,sort"
+    "SELECT id,title,instructor,day,time,duration_min,category,pricing,capacity,room,price,pay_note,on_date FROM classes WHERE active=1 ORDER BY day,time,sort"
   ).all();
   const { results: counts } = await env.DB.prepare(
     "SELECT class_id,date,COUNT(*) n FROM signups WHERE date>=? AND date<=? GROUP BY class_id,date"
@@ -22,7 +22,24 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const { results: og } = await env.DB.prepare(
     "SELECT date,time,room,COUNT(*) n FROM opengym WHERE date>=? AND date<=? GROUP BY date,time,room"
   ).bind(dates[0], dates[6]).all();
-  const out = (classes as any[]).map(c => ({ ...c, date: dates[c.day], taken: cm[`${c.id}:${dates[c.day]}`] || 0 }));
+  const { results: ovs } = await env.DB.prepare(
+    "SELECT * FROM overrides WHERE date>=? AND date<=?"
+  ).bind(dates[0], dates[6]).all();
+  const om: Record<number, any> = {};
+  for (const o of ovs as any[]) om[o.class_id] = o;
+  const OVF = ["title", "instructor", "time", "duration_min", "capacity", "room"] as const;
+  const out = (classes as any[])
+    .filter(c => !c.on_date || c.on_date === dates[c.day])
+    .map(c => {
+      const row: any = { ...c, date: dates[c.day], one_off: c.on_date ? 1 : 0, cancelled: 0, modified: 0 };
+      const o = om[c.id];
+      if (o) {
+        row.cancelled = o.cancelled ? 1 : 0;
+        for (const f of OVF) if (o[f] != null && o[f] !== "") { row[f] = o[f]; row.modified = 1; }
+      }
+      row.taken = cm[`${c.id}:${row.date}`] || 0;
+      return row;
+    });
   return Response.json({ week: dates[0], dates, classes: out, opengym: og }, {
     headers: { "cache-control": "no-store" },
   });

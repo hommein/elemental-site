@@ -88,7 +88,7 @@ export default function Classes() {
 
   const byDay = useMemo(() => {
     const m: Cls[][] = [[], [], [], [], [], [], []];
-    data?.classes.forEach(c => m[c.day].push(c));
+    data?.classes.forEach(c => { if (!(c as any).cancelled) m[c.day].push(c); });
     if (data) {
       const agg = new Map<string, number>();
       data.opengym.forEach(o => agg.set(o.date + "|" + o.time, (agg.get(o.date + "|" + o.time) || 0) + o.n));
