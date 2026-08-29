@@ -270,7 +270,7 @@ function TallyTab() {
   const jamFix = (j: any) => ({ ...j, people: (j.people || []).map((pp: any) => {
     const jam = pp.classes.filter((c: any) => c.title === "Community Jam");
     return jam.length ? { ...pp, classes: pp.classes.filter((c: any) => c.title !== "Community Jam"),
-      opengym: [...pp.opengym, ...jam.map((c: any) => ({ date: c.date, time: c.time, pay_method: c.pay_method, title: "Community Jam" }))] } : pp;
+      opengym: [...pp.opengym, ...jam.map((c: any) => ({ ...c, title: "Community Jam", _kind: "class" }))] } : pp;
   }) });
   const load = () => { const r = range(); return fetch(`/api/admin/people?start=${r.start}${r.end ? "&end=" + r.end : ""}`).then(r => r.json()).then(j => setData(jamFix(j))); };
   useEffect(() => { load(); }, [week, month, scale]);
@@ -550,7 +550,7 @@ function TallyTab() {
                 {p.opengym.map((o: any, i: number) => (
                   <div key={"o" + i} className="text-sm flex items-baseline gap-2">
                     <span className="opacity-60 w-24 shrink-0">{fmtD(o.date)}</span>
-                    <span>{fmtT(o.time)} · {o.title || "Open Gym"} ($10)</span>{payChip(o.pay_method)}{payBtn(o, "opengym")}
+                    <span>{fmtT(o.time)} · {o.title || "Open Gym"} ($10)</span>{payChip(o.pay_method)}{payBtn(o, o._kind || "opengym")}
                   </div>))}
               </div>
               <div>
