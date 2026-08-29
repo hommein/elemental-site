@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 const EMOJIS = ["😊","😄","🥳","🤸","🧘","💪","🔥","✨","🌟","⭐","🎉","🎊","❤️","🧡","💛","💚","💙","💜","🤍","🙌","👏","🙏","👍","💃","🕺","🎪","🎭","🩰","🌙","☀️","🌈","🌸","🌺","🍂","🎃","🎄","🎁","⏰","📅","📣","💌","✅","❗","❓","➡️","👉","🆕","🆓"];
+
+const today = () => new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10);
+const nextDay = (d: string) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); };
 import { me } from "../lib/user";
 
 type Cls = { id?: number; title: string; instructor: string | null; day: number; time: string;
@@ -499,6 +502,10 @@ function TallyTab() {
                   {pack ? `pack ${pack.remaining}` : "no pack"}
                 </span>
                 {p.credit > 0 && <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-ea-gold/40 text-ea-olive">${p.credit.toFixed(2)} credit</span>}
+                {p.member_until && <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (p.member_until >= today() ? "bg-ea-olive/20 text-ea-olive" : "bg-black/5 text-black/40")}
+                  title={"$100/month — covers open gym + Community Jam" + ((p.memberships || []).length ? "; click × in Pack & payments to remove" : "")}>
+                  {p.member_until >= today() ? `member thru ${p.member_until}` : `membership ended ${p.member_until}`}
+                </span>}
                 {owes && <details className="relative">
                   <summary className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700 cursor-pointer list-none select-none">owes ▾</summary>
                   <div className="absolute right-0 mt-1 z-10 bg-white border border-red-200 rounded-lg shadow-lg p-2.5 text-xs w-60 font-normal">
@@ -585,8 +592,23 @@ function TallyTab() {
                     </div>
                   ))}
                 </div>}
+                {(p.memberships || []).length > 0 && <div className="mt-1 space-y-0.5">
+                  {(p.memberships || []).map((m: any) => (
+                    <div key={m.id} className="flex items-center gap-2 text-xs">
+                      <span className={m.end_date >= today() ? "text-ea-olive font-semibold" : "opacity-50"}>membership {m.start_date} → {m.end_date}</span>
+                      <button className="underline text-red-700/70 hover:text-red-700" disabled={busy}
+                        onClick={() => { if (confirm(`Remove membership ${m.start_date} → ${m.end_date}? (payment record stays)`)) post({ op: "delete_membership", id: m.id }); }}>×</button>
+                    </div>))}
+                </div>}
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "4"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}
+                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => {
+                    const cur = (p.memberships || [])[0];
+                    const def = cur && cur.end_date >= today() ? nextDay(cur.end_date) : today();
+                    const st = prompt("Membership start date (YYYY-MM-DD)? $100, runs 1 month.", def); if (!st) return;
+                    const m = prompt("Paid by? (venmo/cash)", "venmo") || "venmo";
+                    post({ op: "add_membership", user_id: p.id, start: st, method: m });
+                  }}>{(p.member_until && p.member_until >= today()) ? "renew membership" : "+ membership"}</button>}
                   {p.id && <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1
                       ${parseFloat(pend[p.id]?.amount) > 0 ? "border-ea-gold bg-ea-gold/15" : "border-black/15"}`}>
                     <span className="text-xs opacity-60">+ payment $</span>

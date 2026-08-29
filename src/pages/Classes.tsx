@@ -513,14 +513,16 @@ ${cls.pay_note}` : ""}
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [msg, setMsg] = useState("");
-  const [pay, setPay] = useState<"pack" | "venmo" | "cash" | "">("");
+  const [pay, setPay] = useState<"pack" | "venmo" | "cash" | "membership" | "">("");
   const [packLeft, setPackLeft] = useState<number | null>(null);
+  const [memberUntil, setMemberUntil] = useState<string | null>(null);
   const [adm, setAdm] = useState(false);
   useEffect(() => {
     me().then(u => {
       if (!u) return;
       setAdm(!!u.is_admin);
       setName(n => n || u.name); setEmail(e => e || u.email);
+      if (u.member_until) { setMemberUntil(u.member_until); if (isJam && u.member_until >= cls.date) setPay(p => p || "membership"); }
       fetch("/api/pack").then(r => r.ok ? r.json() : null).then(j => {
         if (j?.balance == null) return;
         setPackLeft(j.balance);
@@ -588,6 +590,12 @@ ${cls.pay_note}` : ""}
                   Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left{packLeft <= 0 ? " — ok to book, settle up via Venmo" : ""})</span>
                 </label>
               )}
+              {isJam && memberUntil != null && memberUntil >= cls.date && (
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="pay" checked={pay === "membership"} onChange={() => setPay("membership")} required />
+                  Open Gym membership — covered <span className="text-ea-espresso/60">(active thru {memberUntil})</span>
+                </label>
+              )}
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
                 {isJam ? "$10 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : "Single class — Venmo"}
@@ -615,11 +623,13 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
   const [slot, setSlot] = useState<string | null>(initSlot ?? null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [pay, setPay] = useState<"venmo" | "cash" | "">("");
+  const [pay, setPay] = useState<"venmo" | "cash" | "membership" | "">("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [msg, setMsg] = useState("");
   const [adm, setAdm] = useState(false);
-  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); setAdm(!!u.is_admin); } }); }, []);
+  const [memberUntil, setMemberUntil] = useState<string | null>(null);
+  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); setAdm(!!u.is_admin);
+    if (u.member_until) { setMemberUntil(u.member_until); if (u.member_until >= date) setPay(p => p || "membership"); } } }); }, [date]);
 
 
   const slots = useMemo(() => {
@@ -706,7 +716,13 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
             </div>
             {adm && slot && <OgRoster date={date} time={slot} />}
             <div className="text-sm">
-              <p className="font-medium mb-1">How will you pay? ($10)</p>
+              <p className="font-medium mb-1">How will you pay? ($10{memberUntil != null && memberUntil >= date ? " — free with your membership" : ""})</p>
+              {memberUntil != null && memberUntil >= date && (
+                <label className="flex items-center gap-2 mb-1">
+                  <input type="radio" name="ogpay" checked={pay === "membership"} onChange={() => setPay("membership")} required />
+                  Open Gym membership — covered <span className="opacity-60">(active thru {memberUntil})</span>
+                </label>
+              )}
               <label className="flex items-center gap-2 mb-1">
                 <input type="radio" name="ogpay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
                 Venmo <span className="opacity-60">(note: "Aerial")</span>

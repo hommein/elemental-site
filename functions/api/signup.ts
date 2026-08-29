@@ -1,8 +1,8 @@
 import { ptEpoch } from "./bookings";
-import { getUser } from "../_lib";
+import { getUser, memberFor } from "../_lib";
 interface Env { DB: D1Database; SESSION_SECRET: string }
 
-const METHODS = ["pack", "venmo", "cash", "external"];
+const METHODS = ["pack", "venmo", "cash", "external", "membership"];
 
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let body: any;
@@ -35,6 +35,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let packId: number | null = null;
   let packUid: number | null = null;
   let packLeft: number | null = null;
+  if (pay_method === "membership") {
+    if (cls.title !== "Community Jam") return err("Memberships cover open gym and Community Jam only", 400);
+    if (!(await memberFor(env, email.trim().toLowerCase(), date)))
+      return err("No active open gym membership on that date for this email", 400);
+  }
   if (pay_method === "pack") {
     if (cls.pricing !== "dropin")
       return err(cls.title === "Community Jam"

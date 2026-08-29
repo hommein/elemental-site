@@ -1,5 +1,5 @@
 import { ptEpoch } from "./bookings";
-import { getUser } from "../_lib";
+import { getUser, memberFor } from "../_lib";
 interface Env { DB: D1Database; SESSION_SECRET: string }
 const ROOMS = ["Sun Room", "Foyer"];
 const CAP = 2; // spots per room per hour
@@ -7,7 +7,7 @@ const CAP = 2; // spots per room per hour
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let b: any; try { b = await request.json(); } catch { return err("Invalid JSON", 400); }
   const { date, time, name, email } = b || {};
-  const pay = ["venmo", "cash"].includes(b?.pay_method) ? b.pay_method : "cash";
+  const pay = ["venmo", "cash", "membership"].includes(b?.pay_method) ? b.pay_method : "cash";
   if (!date || !time || !name || !email) return err("date, time, name, email required", 400);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:00$/.test(time)) return err("Bad date/time (hour slots only)", 400);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err("Bad email", 400);
@@ -21,6 +21,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   const day = new Date(date + "T00:00:00Z").getUTCDay();
   const em = email.trim().toLowerCase();
+
+  if (pay === "membership" && !(await memberFor(env, em, date)))
+    return err("No active open gym membership on that date for this email", 400);
 
   const dup: any = await env.DB.prepare(
     "SELECT 1 x FROM opengym WHERE date=? AND time=? AND email=?"

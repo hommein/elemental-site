@@ -9,10 +9,10 @@ async function admin(env: AuthEnv, request: Request) {
 const PRICE = priceOf;
 async function unpaidItems(D: D1Database, email: string) {
   const em = email.toLowerCase();
-  const og = (await D.prepare("SELECT id,date,time FROM opengym WHERE lower(email)=?1 AND paid=0 AND (pay_method IS NULL OR pay_method!='pack')").bind(em)
+  const og = (await D.prepare("SELECT id,date,time FROM opengym WHERE lower(email)=?1 AND paid=0 AND (pay_method IS NULL OR pay_method NOT IN ('pack','membership'))").bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "opengym", title: "Open Gym" }));
   const cl = (await D.prepare(`SELECT s.id, s.date, c.time, c.title, c.category, c.price FROM signups s JOIN classes c ON c.id=s.class_id
-    WHERE lower(s.email)=?1 AND s.paid=0 AND (s.pay_method IS NULL OR s.pay_method NOT IN ('pack','external')) AND c.pricing != 'external'`).bind(em)
+    WHERE lower(s.email)=?1 AND s.paid=0 AND (s.pay_method IS NULL OR s.pay_method NOT IN ('pack','external','membership')) AND c.pricing != 'external'`).bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "signups" }));
   return [...og, ...cl].map((r: any) => ({ ...r, price: r.price ?? PRICE(r) }))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -31,7 +31,9 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
     weekEnd = end.toISOString().slice(0, 10);
   }
 
-  const users = (await env.DB.prepare("SELECT id,name,email,phone,created_at FROM users ORDER BY name").all()).results as any[];
+  const users = (await env.DB.prepare(`SELECT id,name,email,phone,created_at,
+    (SELECT max(end_date) FROM memberships m WHERE m.user_id=users.id) AS member_until
+    FROM users ORDER BY name`).all()).results as any[];
   const su = (await env.DB.prepare(
     `SELECT s.id, s.paid, s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price, c.pricing FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2 ORDER BY s.date, c.time`).bind(week, weekEnd).all()).results as any[];
@@ -39,14 +41,16 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
     "SELECT id, paid, email, date, time, pay_method, 10 AS price FROM opengym WHERE date >= ?1 AND date < ?2").bind(week, weekEnd).all()).results as any[];
   const packs = (await env.DB.prepare("SELECT * FROM classpacks ORDER BY purchased_at DESC, id DESC").all()).results as any[];
   const pays = (await env.DB.prepare("SELECT * FROM payments ORDER BY date DESC, id DESC").all()).results as any[];
+  const membs = (await env.DB.prepare("SELECT * FROM memberships ORDER BY end_date DESC, id DESC").all()).results as any[];
 
   const byEmail: Record<string, any> = {};
-  for (const u of users) byEmail[u.email.toLowerCase()] = { ...u, classes: [], opengym: [], packs: [], payments: [] };
-  const guest = (e: string) => byEmail[e] || (byEmail[e] = { id: null, name: "(no account)", email: e, classes: [], opengym: [], packs: [], payments: [] });
-  for (const s of su) guest(s.email.toLowerCase()).classes.push({ id: s.id, paid: s.paid, date: s.date, title: s.title, time: s.time, pay_method: s.pay_method, category: s.category, instructor: s.instructor, billable: s.pay_method !== "pack" && s.pay_method !== "external" && s.pricing !== "external" ? 1 : 0 });
-  for (const o of og) guest(o.email.toLowerCase()).opengym.push({ id: o.id, paid: o.paid, date: o.date, time: o.time, pay_method: o.pay_method, billable: o.pay_method !== "pack" ? 1 : 0 });
+  for (const u of users) byEmail[u.email.toLowerCase()] = { ...u, classes: [], opengym: [], packs: [], payments: [], memberships: [] };
+  const guest = (e: string) => byEmail[e] || (byEmail[e] = { id: null, name: "(no account)", email: e, classes: [], opengym: [], packs: [], payments: [], memberships: [] });
+  for (const s of su) guest(s.email.toLowerCase()).classes.push({ id: s.id, paid: s.paid, date: s.date, title: s.title, time: s.time, pay_method: s.pay_method, category: s.category, instructor: s.instructor, billable: s.pay_method !== "pack" && s.pay_method !== "external" && s.pay_method !== "membership" && s.pricing !== "external" ? 1 : 0 });
+  for (const o of og) guest(o.email.toLowerCase()).opengym.push({ id: o.id, paid: o.paid, date: o.date, time: o.time, pay_method: o.pay_method, billable: o.pay_method !== "pack" && o.pay_method !== "membership" ? 1 : 0 });
   for (const p of packs) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].packs.push(p); }
   for (const p of pays) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].payments.push(p); }
+  for (const m of membs) { const u = users.find(u => u.id === m.user_id); if (u) byEmail[u.email.toLowerCase()].memberships.push(m); }
 
   const crs = (await env.DB.prepare("SELECT user_id, SUM(unallocated) c FROM payments GROUP BY user_id").all()).results as any[];
   for (const c of crs) { const u = users.find(u => u.id === c.user_id); if (u) byEmail[u.email.toLowerCase()].credit = c.c || 0; }
@@ -60,6 +64,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
   if (!await admin(env, request)) return json({ error: "Admin only" }, 403);
   let b: any; try { b = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   const D = env.DB;
+  const D_RE = /^\d{4}-\d{2}-\d{2}$/;
   if (b.op === "mark_paid") {
     const tbl = b.kind === "opengym" ? "opengym" : "signups";
     const res = await env.DB.prepare(`UPDATE ${tbl} SET paid=?1 WHERE id=?2 AND paid=?3`).bind(b.paid ? 1 : 0, Number(b.id), b.paid ? 0 : 1).run();
@@ -71,7 +76,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
         ? await D.prepare("SELECT email, 10 AS price, pay_method FROM opengym WHERE id=?1").bind(Number(b.id)).first()
         : await D.prepare(`SELECT s.email, s.pay_method, c.pricing, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price
              FROM signups s JOIN classes c ON c.id=s.class_id WHERE s.id=?1`).bind(Number(b.id)).first();
-      const billable = row && row.pay_method !== "pack" && row.pay_method !== "external" && row.pricing !== "external";
+      const billable = row && row.pay_method !== "pack" && row.pay_method !== "external" && row.pay_method !== "membership" && row.pricing !== "external";
       const usr: any = billable && await D.prepare("SELECT id FROM users WHERE lower(email)=?1").bind(row.email.toLowerCase()).first();
       if (usr) {
         let left = row.price;
@@ -85,6 +90,21 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
       }
     }
     return json({ ok: true, credit_used });
+  }
+  if (b.op === "add_membership") {
+    // one month from start (default today PT), $100, records the payment too
+    const start = D_RE.test(b.start || "") ? b.start : new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10);
+    const d = new Date(start + "T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(d.getUTCDate() - 1);
+    const end = d.toISOString().slice(0, 10);
+    const method = ["venmo", "cash"].includes(b.method) ? b.method : "venmo";
+    await D.prepare("INSERT INTO memberships(user_id,start_date,end_date,price) VALUES(?,?,?,100)").bind(b.user_id, start, end).run();
+    await D.prepare("INSERT INTO payments(user_id,date,amount,method,note) VALUES(?,?,100,?,?)")
+      .bind(b.user_id, start, method, `open gym membership ${start} → ${end}`).run();
+    return json({ ok: true, start, end });
+  }
+  if (b.op === "delete_membership") {
+    await D.prepare("DELETE FROM memberships WHERE id=?1").bind(b.id).run();
+    return json({ ok: true });
   }
   if (b.op === "add_pack") {
     if (!b.user_id || !(b.size > 0)) return json({ error: "user_id + size" }, 400);

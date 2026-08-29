@@ -37,6 +37,11 @@ export async function verifyPw(pw: string, stored: string): Promise<boolean> {
   const [, salt, hash] = stored.split("$");
   return (await hashPw(pw, salt)).split("$")[2] === hash;
 }
+export async function memberFor(env: any, email: string, date: string) {
+  return await env.DB.prepare(`SELECT m.id, m.end_date FROM memberships m JOIN users u ON u.id=m.user_id
+    WHERE lower(u.email)=?1 AND m.start_date<=?2 AND m.end_date>=?2`).bind(email.toLowerCase(), date).first();
+}
+
 export async function getUser(env: AuthEnv, request: Request): Promise<any | null> {
   const uid = await readSession(env, request);
   if (!uid) return null;

@@ -117,9 +117,14 @@ function PackBox() {
   useEffect(() => { fetch("/api/pack").then(r => r.json()).then(setD); }, []);
   if (!d) return null;
   const bal = d.balance; // canonical: SUM(remaining) across all packs, from the server
+  const mu = d.member_until;
+  const activeM = mu && mu >= new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10);
   return (
     <div className="border border-ea-accent/40 rounded p-4 text-sm">
       <h2 className="font-serif text-lg mb-1">Class Pack & Payments</h2>
+      {mu && (activeM
+        ? <p className="text-ea-olive font-semibold mb-1">Open Gym membership active through {mu} — open gym & Community Jam are covered.</p>
+        : <p className="opacity-60 mb-1">Your Open Gym membership ended {mu}. Renew at the studio ($100/month).</p>)}
       {bal != null
         ? <p>You have <b>{bal}</b> classes left in your pack.{bal < 0 &&
             <span className="block text-sm text-ea-brown mt-1">A negative balance just means you booked ahead of a payment being recorded — settle up via Venmo below.</span>}</p>
