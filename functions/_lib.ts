@@ -1,7 +1,7 @@
 export interface AuthEnv { DB: D1Database; SESSION_SECRET: string }
 const enc = new TextEncoder();
 export const json = (o: any, s = 200, headers: Record<string, string> = {}) =>
-  new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", ...headers } });
+  new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
 
 const b64u = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const ub64 = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));

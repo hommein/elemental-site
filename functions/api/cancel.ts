@@ -1,6 +1,6 @@
 import { ptEpoch, CUTOFF_MS } from "./bookings";
 interface Env { DB: D1Database }
-const json = (o: any, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json" } });
+const json = (o: any, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let b: any; try { b = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }

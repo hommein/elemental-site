@@ -1,5 +1,5 @@
 interface Env { DB: D1Database }
-const json = (o: any, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json" } });
+const json = (o: any, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 
 export function ptEpoch(date: string, time: string): number {
   let t = Date.parse(`${date}T${time}:00-08:00`);
