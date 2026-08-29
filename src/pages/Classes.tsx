@@ -71,7 +71,7 @@ export default function Classes() {
   useEffect(() => { me().then(u => setAdm(!!u?.is_admin)); }, []);
   const [week, setWeek] = useState<string | null>(null);
   const [sel, setSel] = useState<Cls | null>(null);
-  const [ogDay, setOgDay] = useState<number | null>(null);
+  const [og, setOg] = useState<{ day: number; slot?: string } | null>(null);
   const [err, setErr] = useState("");
   const [mDay, setMDay] = useState<number | "all">(new Date().getDay());
   const [tick, setTick] = useState(0);
@@ -88,6 +88,19 @@ export default function Classes() {
   const byDay = useMemo(() => {
     const m: Cls[][] = [[], [], [], [], [], [], []];
     data?.classes.forEach(c => m[c.day].push(c));
+    if (data) {
+      const agg = new Map<string, number>();
+      data.opengym.forEach(o => agg.set(o.date + "|" + o.time, (agg.get(o.date + "|" + o.time) || 0) + o.n));
+      agg.forEach((n, k) => {
+        const [date, time] = k.split("|");
+        const day = data.dates.indexOf(date);
+        if (day >= 0 && n > 0)
+          m[day].push({ id: -(day * 10000 + toMin(time)), day, date, time, duration_min: 60,
+            title: "Open Gym", instructor: "", category: "opengym", pricing: "", capacity: 0,
+            room: "", taken: n } as Cls);
+      });
+      m.forEach(l => l.sort((a, b) => toMin(a.time) - toMin(b.time)));
+    }
     return m;
   }, [data]);
 
@@ -203,11 +216,11 @@ export default function Classes() {
               {data?.dates[i] === todayISO && <span className="ml-2 text-xs bg-ea-gold/40 rounded-full px-2 py-0.5 align-middle">today</span>}
             </h3>
             <div className="flex flex-col gap-2">
-              <button onClick={() => setOgDay(i)}
+              <button onClick={() => setOg({ day: i })}
                 className="text-left border border-dashed border-ea-olive/50 rounded-lg px-2.5 py-2 text-sm text-ea-olive hover:bg-ea-olive/10">
                 + Book Open Gym
               </button>
-              {byDay[i].map(c => <Tile key={c.id} c={c} admin={adm} onPick={() => setSel(c)} />)}
+              {byDay[i].map(c => <Tile key={c.id} c={c} admin={adm} onPick={() => c.id < 0 ? setOg({ day: i, slot: c.time }) : setSel(c)} />)}
               {byDay[i].length === 0 && <p className="text-sm text-ea-espresso/50">—</p>}
             </div>
           </div>
@@ -227,7 +240,7 @@ export default function Classes() {
         {/* aligned open-gym row (top) */}
         <div />
         {DAYS.map((_, i) => (
-          <button key={"og" + i} onClick={() => setOgDay(i)}
+          <button key={"og" + i} onClick={() => setOg({ day: i })}
             className="mb-2 border border-dashed border-ea-olive/50 rounded-lg px-2 py-1.5 text-xs text-ea-olive hover:bg-ea-olive/10">
             + Book Open Gym
           </button>
@@ -247,7 +260,7 @@ export default function Classes() {
             style={{ height: gridH, backgroundImage: "repeating-linear-gradient(to bottom, rgba(0,0,0,.07) 0 1px, transparent 1px 4.5rem)" }}>
             {placed(byDay[i]).map(({ c, top, h, left, width }) => (
               <div key={c.id} className="absolute px-px" style={{ top, height: h, left, width }}>
-                <Tile c={c} abs admin={adm} onPick={() => setSel(c)} />
+                <Tile c={c} abs admin={adm} onPick={() => c.id < 0 ? setOg({ day: i, slot: c.time }) : setSel(c)} />
               </div>
             ))}
           </div>
@@ -256,9 +269,9 @@ export default function Classes() {
       </div>
 
       {sel && <SignupModal cls={sel} onClose={(changed) => { setSel(null); if (changed) setTick(t => t + 1); }} />}
-      {ogDay !== null && data && (
-        <OpenGymModal day={ogDay} data={data}
-          onClose={(changed) => { setOgDay(null); if (changed) setTick(t => t + 1); }} />
+      {og && data && (
+        <OpenGymModal day={og.day} initSlot={og.slot} data={data}
+          onClose={(changed) => { setOg(null); if (changed) setTick(t => t + 1); }} />
       )}
       {showBk && <MyBookingsModal onClose={(changed) => { setShowBk(false); if (changed) setTick(t => t + 1); }} />}
     </section>
@@ -336,6 +349,21 @@ function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
 }
 
 function Tile({ c, onPick, abs, admin }: { c: Cls; onPick: () => void; abs?: boolean; admin?: boolean }) {
+  if (c.id < 0) {
+    const past = `${c.date} ${c.time}` <= ptNow();
+    const og = `text-left border border-dashed border-ea-olive/60 bg-ea-olive/10 text-ea-olive rounded-lg overflow-hidden transition block
+      ${abs ? "h-full w-full px-1.5 py-1 text-xs leading-tight" : "px-2.5 py-2 text-sm"}
+      ${past && !admin ? "opacity-40 grayscale cursor-default" : "hover:bg-ea-olive/20"}`;
+    const body = (
+      <>
+        <div className="font-medium leading-tight truncate">Open Gym</div>
+        <div className={`truncate ${abs ? "text-[11px]" : "text-xs"}`}>
+          {fmt(c.time)} · {c.taken} signed up
+        </div>
+      </>
+    );
+    return past && !admin ? <div className={og}>{body}</div> : <button onClick={onPick} className={og}>{body}</button>;
+  }
   const full = c.taken >= c.capacity;
   const ext = c.pricing === "external";
   const past = `${c.date} ${c.time}` <= ptNow();
@@ -521,9 +549,9 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
   );
 }
 
-function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClose: (changed: boolean) => void }) {
+function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?: string; data: Sched; onClose: (changed: boolean) => void }) {
   const date = data.dates[day];
-  const [slot, setSlot] = useState<string | null>(null);
+  const [slot, setSlot] = useState<string | null>(initSlot ?? null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pay, setPay] = useState<"venmo" | "cash" | "">("");
@@ -664,7 +692,7 @@ function OgRoster({ date, time }: { date: string; time: string }) {
           {rows.map(r => (
             <div key={r.id} className="flex items-center gap-2">
               <span className="flex-1 truncate">{r.name} <span className="opacity-60">({r.email})</span></span>
-              <span className="text-xs opacity-60">{r.room}{r.pay_method ? ` · ${r.pay_method}` : ""}</span>
+              <span className="text-xs opacity-60">{r.pay_method || ""}</span>
               <button type="button" className="text-red-700 text-xs underline" disabled={busy}
                 onClick={() => post({ op: "og_remove", id: r.id })}>remove</button>
             </div>))}
