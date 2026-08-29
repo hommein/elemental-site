@@ -449,6 +449,12 @@ function AdminRoster({ cls, onChanged }: { cls: Cls; onChanged: () => void }) {
 }
 
 
+function ExtAdmin({ cls }: { cls: Cls }) {
+  const [adm, setAdm] = useState(false);
+  useEffect(() => { me().then(u => setAdm(!!u?.is_admin)); }, []);
+  return adm ? <AdminRoster cls={cls} onChanged={() => {}} /> : null;
+}
+
 function ExtSignup({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -499,6 +505,7 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
 ${cls.pay_note}` : ""}
         </p>
         <ExtSignup cls={cls} onClose={onClose} />
+        <ExtAdmin cls={cls} />
       </div>
     </div>
   );

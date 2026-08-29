@@ -65,7 +65,9 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
 
   if (b.op === "add") {
     const { class_id, date, name, email } = b;
-    const pay = ["pack", "venmo", "cash"].includes(b.pay_method) ? b.pay_method : "cash";
+    let pay = ["pack", "venmo", "cash"].includes(b.pay_method) ? b.pay_method : "cash";
+    const cx: any = await env.DB.prepare("SELECT pricing FROM classes WHERE id=?1").bind(Number(class_id)).first();
+    if (cx?.pricing === "external") pay = "external";
     if (!class_id || !date || !name || !email) return json({ error: "class_id, date, name, email required" }, 400);
     const em = String(email).trim().toLowerCase();
     let packId: number | null = null;
