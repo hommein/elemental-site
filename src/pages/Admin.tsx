@@ -277,6 +277,16 @@ function TallyTab() {
     else { const [y, m] = month.split("-").map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); setMonth(d.toISOString().slice(0, 7)); }
   };
   const post = async (body: any) => { setBusy(true); await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); await load(); setBusy(false); };
+  const [pend, setPend] = useState<Record<number, { amount: string; method: string }>>({});
+  const setP = (id: number, patch: any) => setPend(x => ({ ...x, [id]: { ...{ amount: "", method: "venmo" }, ...x[id], ...patch } }));
+  const pendIds = Object.keys(pend).filter(k => parseFloat(pend[+k]?.amount) > 0).map(Number);
+  const saveAll = async () => {
+    setBusy(true);
+    for (const id of pendIds)
+      await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "add_payment", user_id: id, amount: parseFloat(pend[id].amount), method: pend[id].method }) });
+    setPend({}); await load(); setBusy(false);
+  };
 
   if (!data) return <p>Loading…</p>;
   if (!data.people) return <p>Admins only.</p>;
@@ -508,7 +518,17 @@ function TallyTab() {
                 </div>}
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "4"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}
-                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const a = prompt("Payment amount ($)?"); if (a) post({ op: "add_payment", user_id: p.id, amount: +a, method: prompt("Method? (venmo/cash)", "venmo") || "venmo" }); }}>+ payment</button>}
+                  {p.id && <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1
+                      ${parseFloat(pend[p.id]?.amount) > 0 ? "border-ea-gold bg-ea-gold/15" : "border-black/15"}`}>
+                    <span className="text-xs opacity-60">+ payment $</span>
+                    <input inputMode="decimal" placeholder="0" value={pend[p.id]?.amount || ""}
+                      onChange={e => setP(p.id, { amount: e.target.value })}
+                      className="w-14 border border-black/20 rounded px-1.5 py-0.5 text-xs bg-white" />
+                    <select value={pend[p.id]?.method || "venmo"} onChange={e => setP(p.id, { method: e.target.value })}
+                      className="border border-black/20 rounded px-1 py-0.5 text-xs bg-white">
+                      <option value="venmo">venmo</option><option value="cash">cash</option>
+                    </select>
+                  </span>}
                   {p.phone
                     ? <a className="btn text-xs !px-2.5 !py-1" href={`sms:${p.phone}?&body=${smsBody}`}>📱 text reminder</a>
                     : <span className="text-xs opacity-50 italic">no phone on file</span>}
@@ -519,6 +539,18 @@ function TallyTab() {
         );
       });
       })()}
+      {pendIds.length > 0 && (
+        <div className="sticky bottom-4 z-20 mt-4 flex items-center justify-center gap-3">
+          <div className="bg-ea-espresso text-white rounded-xl shadow-lg px-4 py-2.5 flex items-center gap-3">
+            <span className="text-sm">{pendIds.length} payment{pendIds.length === 1 ? "" : "s"} pending</span>
+            <button className="btn btn--accent text-xs !px-3 !py-1.5" disabled={busy} onClick={saveAll}>
+              {busy ? "Saving…" : `Save ${pendIds.length === 1 ? "payment" : "all payments"}`}
+            </button>
+            <button className="text-xs underline opacity-70 hover:opacity-100" disabled={busy}
+              onClick={() => setPend({})}>discard</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
