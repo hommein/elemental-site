@@ -108,6 +108,10 @@ function ScheduleTab() {
 function fmtWk(d: Date) { return d.toISOString().slice(0, 10); }
 function curSun() { const n = new Date(); const d = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d; }
 const VENMO = "https://account.venmo.com/u/Katelyn-Carano";
+// canonical pack balance: SUM(remaining) across ALL packs (null = never had a pack).
+// Must match /api/pack "balance" and signup.ts pack_remaining — one number everywhere.
+const pkBal = (p: any): number | null =>
+  p.packs && p.packs.length ? p.packs.reduce((s: number, k: any) => s + k.remaining, 0) : null;
 
 
 /* ---- tiny dependency-free SVG charts ---- */
@@ -348,8 +352,8 @@ function TallyTab() {
         const active = ppl.filter(p => p.classes.length + p.opengym.length > 0);
         const by = (m: string) => cls.filter((c: any) => c.pay_method === m).length;
         const owing = ppl.filter(p => { const t = p.classes.length + p.opengym.length;
-          const pk = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
-          return (pk && pk.remaining < 0) || (t > 0 && (!pk || pk.remaining < t)); }).length;
+          const bal = pkBal(p);
+          return (bal != null && bal < 0) || (t > 0 && (bal == null || bal < t)); }).length;
         const paysIn = ppl.flatMap(p => p.payments || []).filter((x: any) => inR(x.date));
         const paid = paysIn.reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const packsSold = ppl.flatMap(p => p.packs || []).filter((k: any) => inR((k.purchased_at || "").slice(0, 10))).length;
@@ -437,9 +441,9 @@ function TallyTab() {
         const norm = (s: any) => String(s || "").toLowerCase();
         const qq = norm(q.trim());
         const tk = (p: any) => p.classes.length + p.opengym.length;
-        const pkRem = (p: any) => { const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return k ? k.remaining : 9999; };
+        const pkRem = (p: any) => { const b = pkBal(p); return b == null ? 9999 : b; };
         const unpaid = (p: any) => [...p.classes, ...p.opengym].filter((x: any) => x.pay_method !== "pack" && !x.paid);
-        const owesF = (p: any) => { const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return (k && k.remaining < 0) || unpaid(p).length > 0; };
+        const owesF = (p: any) => { const b = pkBal(p); return (b != null && b < 0) || unpaid(p).length > 0; };
         const paidT = (p: any) => (p.payments || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const cmp: Record<string, (a: any, b: any) => number> = {
           active: (a, b) => tk(b) - tk(a),
@@ -455,8 +459,9 @@ function TallyTab() {
         if (!shown.length) return <p className="text-sm opacity-60 italic">No members match "{q}".</p>;
         return shown.map((p: any) => {
         const taken = p.classes.length + p.opengym.length;
-        const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
-        const owes = (pack && pack.remaining < 0) || unpaid(p).length > 0;
+        const bal = pkBal(p);
+        const pack = bal != null ? { remaining: bal } : null;
+        const owes = (bal != null && bal < 0) || unpaid(p).length > 0;
         const smsBody = encodeURIComponent(
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} classes left.` : "") +
@@ -545,9 +550,9 @@ function TallyTab() {
                 <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Pack & payments</div>
                 <div className="text-sm flex flex-wrap items-center gap-2">
                   {pack ? <span>Pack: <b>{pack.remaining}</b> left</span> : <em className="opacity-60">no class pack</em>}
-                  {pack && p.id && <>
-                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: -1 })}>−1</button>
-                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: 1 })}>+1</button>
+                  {pack && p.id && p.packs[0] && <>
+                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: p.packs[0].id, delta: -1 })}>−1</button>
+                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: p.packs[0].id, delta: 1 })}>+1</button>
                   </>}
                 </div>
                 {p.payments.length > 0 && <div className="mt-2">

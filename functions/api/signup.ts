@@ -30,6 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   // resolve a class pack if paying by pack
   let packId: number | null = null;
+  let packUid: number | null = null;
   let packLeft: number | null = null;
   if (pay_method === "pack") {
     if (cls.title === "Community Jam")
@@ -46,6 +47,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
       ? "No class pack on your account yet — choose Venmo or cash, or ask the studio to add your pack."
       : "Class packs are tied to an account — sign in with this email first, or choose Venmo or cash.", 402);
     packId = pack.id;
+    packUid = u.id;
     packLeft = pack.remaining - 1;
   }
 
@@ -59,7 +61,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (packId != null)
     await env.DB.prepare("UPDATE classpacks SET remaining = remaining-1 WHERE id=?1").bind(packId).run();
 
-  return Response.json({ ok: true, spots_left: cls.capacity - cnt.n - 1, pack_remaining: packLeft });
+  // canonical pack balance = SUM(remaining) across ALL packs — same number everywhere
+  if (packUid != null) {
+    const bal = await env.DB.prepare("SELECT COALESCE(SUM(remaining),0) b FROM classpacks WHERE user_id=?1").bind(packUid).first<any>();
+    packLeft = Number(bal?.b ?? 0);
+  }
+  return new Response(JSON.stringify({ ok: true, spots_left: cls.capacity - cnt.n - 1, pack_remaining: packLeft }),
+    { headers: { "content-type": "application/json", "cache-control": "no-store" } });
 };
 
 const err = (m: string, s: number) => Response.json({ error: m }, { status: s });

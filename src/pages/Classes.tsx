@@ -462,9 +462,8 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
       setAdm(!!u.is_admin);
       setName(n => n || u.name); setEmail(e => e || u.email);
       fetch("/api/pack").then(r => r.ok ? r.json() : null).then(j => {
-        if (!j?.packs?.length) return;
-        const left = j.packs.reduce((a: number, p: any) => a + p.remaining, 0);
-        setPackLeft(left);
+        if (j?.balance == null) return;
+        setPackLeft(j.balance);
         setPay(p => p || "pack");
       }).catch(() => {});
     });

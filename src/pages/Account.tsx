@@ -116,12 +116,12 @@ function PackBox() {
   const [d, setD] = useState<any>(null);
   useEffect(() => { fetch("/api/pack").then(r => r.json()).then(setD); }, []);
   if (!d) return null;
-  const pack = (d.packs || []).find((p: any) => p.remaining > 0) || (d.packs || [])[0];
+  const bal = d.balance; // canonical: SUM(remaining) across all packs, from the server
   return (
     <div className="border border-ea-accent/40 rounded p-4 text-sm">
       <h2 className="font-serif text-lg mb-1">Class Pack & Payments</h2>
-      {pack
-        ? <p>You have <b>{pack.remaining}</b> classes left in your pack.{pack.remaining < 0 &&
+      {bal != null
+        ? <p>You have <b>{bal}</b> classes left in your pack.{bal < 0 &&
             <span className="block text-sm text-ea-brown mt-1">A negative balance just means you booked ahead of a payment being recorded — settle up via Venmo below.</span>}</p>
         : <p>No class pack on file — pay per class, or ask at the studio about packs.</p>}
       {d.credit > 0 && <p className="mt-1">You also have <b>${d.credit.toFixed(2)}</b> unused credit on file — it's automatically applied when the studio records your bookings or next pack.</p>}
