@@ -409,7 +409,20 @@ function TallyTab() {
                 <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
                   {pack ? `pack ${pack.remaining}/${pack.size}` : "no pack"}
                 </span>
-                {owes && <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">owes</span>}
+                {owes && <details className="relative">
+                  <summary className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700 cursor-pointer list-none select-none">owes ▾</summary>
+                  <div className="absolute right-0 mt-1 z-10 bg-white border border-red-200 rounded-lg shadow-lg p-2.5 text-xs w-60 font-normal">
+                    <p className="font-semibold text-red-700 mb-1">Owes for:</p>
+                    {pack && pack.remaining < 0 &&
+                      <p className="mb-1">Class pack overdrawn by <strong>{-pack.remaining}</strong> class{pack.remaining === -1 ? "" : "es"}</p>}
+                    {p.classes.filter((c: any) => c.pay_method !== "pack").map((c: any, i: number) => (
+                      <p key={"c" + i}>{fmtD(c.date)} {fmtT(c.time)} · {c.title} <span className="opacity-60">({c.pay_method || "unpaid"})</span></p>))}
+                    {p.opengym.map((o: any, i: number) => (
+                      <p key={"o" + i}>{fmtD(o.date)} {fmtT(o.time)} · Open Gym $10 <span className="opacity-60">({o.pay_method || "unpaid"})</span></p>))}
+                    {(p.payments || []).length > 0 &&
+                      <p className="mt-1 opacity-60">Check payments logged below — some may already be settled.</p>}
+                  </div>
+                </details>}
               </span>
             </div>
             <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 mt-2">
