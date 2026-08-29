@@ -125,6 +125,7 @@ function EditPanel({ c, b, day, dates, names, onDone, onClose }:
         category: b.category || "", pricing: b.pricing || "dropin", price: b.price ?? "", day: c.day });
   const [err, setErr] = useState("");
   const [confirmDel, setConfirmDel] = useState(false);
+  const past = !adding && c.date < today();
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const dif = (k: string) => !adding && String(f[k] ?? "") !== String((k === "instructor" ? b[k] || "" : b[k]) ?? "");
   const inp = (k: string, extra = "") => `border rounded px-2 py-1 w-full ${dif(k) ? "border-ea-gold ring-2 ring-ea-gold/40 bg-ea-gold/10" : "border-black/20"} ${extra}`;
@@ -154,7 +155,7 @@ function EditPanel({ c, b, day, dates, names, onDone, onClose }:
     await api({ op: "override", class_id: c.id, date: c.date, cancelled: c.cancelled ? 0 : 1, set: diffs() });
     return c.cancelled ? `${c.title} restored for this week.` : `${c.title} cancelled for this week only.`;
   });
-  const remove = () => run(async () => { await api({ op: "delete", id: c.id }); return `${c.title} removed from the schedule.`; });
+  const remove = () => run(async () => { await api({ op: "delete", id: c.id, from: b.on_date ? undefined : c.date }); return `${c.title} removed from the schedule.`; });
   const create = () => run(async () => {
     await api({ ...baseBody(), on_date: f.scope === "once" ? dates[Number(f.day)] : null });
     return f.scope === "once" ? `${f.title} added on ${sdf(dates[Number(f.day)])} only.` : `${f.title} added every ${DAYS[Number(f.day)]}.`;
@@ -190,14 +191,15 @@ function EditPanel({ c, b, day, dates, names, onDone, onClose }:
       {!adding && Object.keys(diffs()).length > 0 && <p className="text-xs text-ea-brown mt-2">Highlighted fields differ from the usual schedule — choose how to save.</p>}
       {err && <p className="text-sm text-red-700 mt-2">{err}</p>}
       <div className="flex gap-2 mt-3 flex-wrap items-center">
-        {adding ? <button className="btn" onClick={create}>Add Class</button> : <>
+        {past ? <span className="text-sm text-ea-espresso/60 italic">Past class — read-only. Switch to a current or future week to make changes.</span>
+        : adding ? <button className="btn" onClick={create}>Add Class</button> : <>
           {!b.on_date && <button className="btn" onClick={saveWeek}>Save · This Week Only</button>}
           <button className="btn btn--accent" onClick={saveAll}>{b.on_date ? "Save" : "Save · Every Week"}</button>
           {!b.on_date && <button className="btn" onClick={toggleCancel}>{c.cancelled ? "Restore This Week" : "Cancel This Week"}</button>}
           <span className="ml-auto" />
           {confirmDel
-            ? <span className="text-sm">Remove {b.on_date ? "this one-off" : "from ALL weeks"}? <button className="underline text-red-700" onClick={remove}>yes, remove</button> · <button className="underline" onClick={() => setConfirmDel(false)}>no</button></span>
-            : <button className="text-sm underline text-red-700" onClick={() => setConfirmDel(true)}>{b.on_date ? "Delete one-off" : "Remove from all weeks"}</button>}
+            ? <span className="text-sm">Remove {b.on_date ? "this one-off" : "from this week & all future weeks"}? <button className="underline text-red-700" onClick={remove}>yes, remove</button> · <button className="underline" onClick={() => setConfirmDel(false)}>no</button></span>
+            : <button className="text-sm underline text-red-700" onClick={() => setConfirmDel(true)}>{b.on_date ? "Delete one-off" : "Remove · This & Future Weeks"}</button>}
         </>}
       </div>
     </div>

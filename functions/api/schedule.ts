@@ -12,7 +12,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     dates.push(d.toISOString().slice(0, 10));
   }
   const { results: classes } = await env.DB.prepare(
-    "SELECT id,title,instructor,day,time,duration_min,category,pricing,capacity,room,price,pay_note,on_date FROM classes WHERE active=1 ORDER BY day,time,sort"
+    "SELECT id,title,instructor,day,time,duration_min,category,pricing,capacity,room,price,pay_note,on_date,end_date FROM classes WHERE active=1 ORDER BY day,time,sort"
   ).all();
   const { results: counts } = await env.DB.prepare(
     "SELECT class_id,date,COUNT(*) n FROM signups WHERE date>=? AND date<=? GROUP BY class_id,date"
@@ -29,7 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   for (const o of ovs as any[]) om[o.class_id] = o;
   const OVF = ["title", "instructor", "time", "duration_min", "capacity", "room"] as const;
   const out = (classes as any[])
-    .filter(c => !c.on_date || c.on_date === dates[c.day])
+    .filter(c => (!c.on_date || c.on_date === dates[c.day]) && (!c.end_date || dates[c.day] <= c.end_date))
     .map(c => {
       const row: any = { ...c, date: dates[c.day], one_off: c.on_date ? 1 : 0, cancelled: 0, modified: 0 };
       const o = om[c.id];

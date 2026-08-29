@@ -4,6 +4,7 @@ async function admin(env: AuthEnv, request: Request) {
   const u: any = await getUser(env, request);
   return u?.is_admin ? u : null;
 }
+const ptToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
 const FIELDS = ["title","instructor","day","time","duration_min","category","pricing","capacity","active","room","price","on_date"] as const;
 
 export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => {
@@ -19,6 +20,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
   if (b.op === "override") {
     const { class_id, date } = b;
     if (!class_id || !/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return json({ error: "class_id and date required" }, 400);
+    if (date < ptToday()) return json({ error: "Past classes are read-only" }, 400);
     const s = b.set || {};
     const vals = [class_id, date, b.cancelled ? 1 : 0,
       s.title ?? null, s.instructor ?? null, s.time ?? null,
@@ -34,11 +36,20 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     return json({ ok: true });
   }
   if (b.op === "clear_override") {
+    if (String(b.date || "") < ptToday()) return json({ error: "Past classes are read-only" }, 400);
     await env.DB.prepare("DELETE FROM overrides WHERE class_id=?1 AND date=?2").bind(b.class_id, b.date).run();
     return json({ ok: true });
   }
   if (b.op === "delete") {
     if (!b.id) return json({ error: "id required" }, 400);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.from || ""))) {
+      if (b.from < ptToday()) b.from = ptToday();
+      // end the recurring class as of `from` (that date and later hidden); past weeks keep history
+      const d = new Date(b.from + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() - 1);
+      await env.DB.prepare("UPDATE classes SET end_date = ?2 WHERE id = ?1")
+        .bind(b.id, d.toISOString().slice(0, 10)).run();
+      return json({ ok: true });
+    }
     await env.DB.prepare("UPDATE classes SET active = 0 WHERE id = ?1").bind(b.id).run();
     return json({ ok: true });
   }

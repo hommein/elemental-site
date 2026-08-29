@@ -23,6 +23,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const dow = new Date(date + "T00:00:00Z").getUTCDay();
   if (dow !== cls.day) return err("Date does not match this class's weekday", 400);
   if (cls.on_date && cls.on_date !== date) return err("This one-time class is only on " + cls.on_date, 400);
+  if (cls.end_date && date > cls.end_date) return err("This class is no longer on the schedule", 400);
   const ov: any = await env.DB.prepare("SELECT * FROM overrides WHERE class_id=? AND date=?").bind(class_id, date).first();
   if (ov?.cancelled) return err("This class is cancelled that week", 400);
   if (ov) for (const f of ["time", "capacity"]) if (ov[f] != null && ov[f] !== "") cls[f] = ov[f];
