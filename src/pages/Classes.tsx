@@ -418,6 +418,7 @@ function AdminRoster({ cls, onChanged }: { cls: Cls; onChanged: () => void }) {
 }
 
 function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) => void }) {
+  const isJam = cls.title === "Community Jam";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
@@ -491,8 +492,8 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
               className="border border-black/20 rounded-lg px-3 py-2" />
             <fieldset className="flex flex-col gap-1.5 text-sm">
-              <legend className="font-medium mb-1">How are you paying?</legend>
-              {packLeft != null && (
+              <legend className="font-medium mb-1">How are you paying?{isJam && " ($10 — same as open gym)"}</legend>
+              {packLeft != null && !isJam && (
                 <label className="flex items-center gap-2">
                   <input type="radio" name="pay" checked={pay === "pack"} onChange={() => setPay("pack")} required />
                   Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left{packLeft <= 0 ? " — ok to book, settle up via Venmo" : ""})</span>
@@ -500,11 +501,11 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
               )}
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
-                Single class — Venmo
+                {isJam ? "$10 — Venmo" : "Single class — Venmo"}
               </label>
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "cash"} onChange={() => setPay("cash")} required />
-                Single class — cash in studio
+                {isJam ? "$10 — cash in studio" : "Single class — cash in studio"}
               </label>
             </fieldset>
             {msg && <p className="text-sm text-red-700">{msg}</p>}

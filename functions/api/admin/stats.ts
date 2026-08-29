@@ -46,6 +46,11 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   const topMap: Record<string, number> = {}, topGrp: Record<string, string> = {}, catMap: Record<string, number> = {},
     payMix: Record<string, number> = {}, byDay = Array.from({ length: 7 }, () => ({ cls: 0, og: 0 }));
   for (const s of su) {
+    if (s.title === "Community Jam") { // treated as open gym
+      bump(s.date, "opengym");
+      if (s.date >= s90) byDay[new Date(s.date + "T00:00:00Z").getUTCDay()].og++;
+      continue;
+    }
     bump(s.date, "signups");
     if (s.date >= s90) {
       topMap[s.title] = (topMap[s.title] || 0) + 1;

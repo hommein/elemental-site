@@ -32,6 +32,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let packId: number | null = null;
   let packLeft: number | null = null;
   if (pay_method === "pack") {
+    if (cls.title === "Community Jam")
+      return err("Community Jam is $10 like open gym — choose Venmo or cash", 400);
     const u: any = await env.DB.prepare("SELECT id FROM users WHERE email=?1").bind(em).first();
     // oldest pack with balance first; otherwise newest pack (balance may go negative
     // — studio records Venmo payments late, so members can book ahead of the update)
