@@ -606,8 +606,8 @@ function TallyTab() {
                     const cur = (p.memberships || [])[0];
                     const def = cur && cur.end_date >= today() ? nextDay(cur.end_date) : today();
                     const st = prompt("Membership start date (YYYY-MM-DD)? $100, runs 1 month.", def); if (!st) return;
-                    const m = prompt("Paid by? (venmo/cash)", "venmo") || "venmo";
-                    post({ op: "add_membership", user_id: p.id, start: st, method: m });
+                    const m = prompt("Paid by? (venmo/cash)", "venmo"); if (m === null) return;
+                    post({ op: "add_membership", user_id: p.id, start: st, method: m.trim().toLowerCase() === "cash" ? "cash" : "venmo" });
                   }}>{(p.member_until && p.member_until >= today()) ? "renew membership" : "+ membership"}</button>}
                   {p.id && <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1
                       ${parseFloat(pend[p.id]?.amount) > 0 ? "border-ea-gold bg-ea-gold/15" : "border-black/15"}`}>
