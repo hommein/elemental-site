@@ -479,7 +479,11 @@ function TallyTab() {
           (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
         const fmtD = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
         const fmtT = (t: string) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
-        const payBtn = (x: any, kind: string) => !x.billable ? null : x.paid ?
+        const payBtn = (x: any, kind: string) => x.pay_method === "waived" ?
+          <button className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-gray-200 text-gray-600"
+            title="Payment waived (trade/comp) — click to un-waive" disabled={busy}
+            onClick={() => post({ op: "waive", kind, id: x.id, on: 0 })}>waived</button>
+          : !x.billable ? null : x.paid ?
           <button className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-emerald-100 text-emerald-800"
             title="Click to mark unpaid" disabled={busy}
             onClick={() => post({ op: "mark_paid", kind, id: x.id, paid: 0 })}>paid ✓</button> :
@@ -487,8 +491,11 @@ function TallyTab() {
             <span className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-red-100 text-red-700">owes</span>
             <button className="text-[10px] px-1.5 py-px rounded-full font-semibold border border-emerald-400 text-emerald-700 hover:bg-emerald-50"
               disabled={busy} onClick={() => post({ op: "mark_paid", kind, id: x.id, paid: 1 })}>mark paid</button>
+            <button className="text-[10px] px-1.5 py-px rounded-full font-semibold border border-gray-300 text-gray-500 hover:bg-gray-100"
+              title="Waive payment (work trade / comp)" disabled={busy}
+              onClick={() => { if (confirm("Waive payment for this booking? (work trade / comp — no money tracked)")) post({ op: "waive", kind, id: x.id, on: 1 }); }}>waive</button>
           </>;
-        const payChip = (m: string | null) => m ?
+        const payChip = (m: string | null) => m && m !== "waived" ?
           <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " +
             (m === "pack" ? "bg-ea-gold/40 text-ea-olive" : m === "venmo" ? "bg-sky-100 text-sky-800" : m === "external" ? "bg-ea-olive/15 text-ea-olive" : "bg-emerald-100 text-emerald-800")}>{m === "external" ? "pays instructor" : m}</span> : null;
         return (
@@ -595,7 +602,7 @@ function TallyTab() {
                 {(p.memberships || []).length > 0 && <div className="mt-1 space-y-0.5">
                   {(p.memberships || []).map((m: any) => (
                     <div key={m.id} className="flex items-center gap-2 text-xs">
-                      <span className={m.end_date >= today() ? "text-ea-olive font-semibold" : "opacity-50"}>membership {m.start_date} → {m.end_date}</span>
+                      <span className={m.end_date >= today() ? "text-ea-olive font-semibold" : "opacity-50"}>membership {m.start_date} → {m.end_date}{m.price === 0 && " · waived (trade)"}</span>
                       <button className="underline text-red-700/70 hover:text-red-700" disabled={busy}
                         onClick={() => { if (confirm(`Remove membership ${m.start_date} → ${m.end_date}? (payment record stays)`)) post({ op: "delete_membership", id: m.id }); }}>×</button>
                     </div>))}
@@ -606,8 +613,9 @@ function TallyTab() {
                     const cur = (p.memberships || [])[0];
                     const def = cur && cur.end_date >= today() ? nextDay(cur.end_date) : today();
                     const st = prompt("Membership start date (YYYY-MM-DD)? $100, runs 1 month.", def); if (!st) return;
-                    const m = prompt("Paid by? (venmo/cash)", "venmo"); if (m === null) return;
-                    post({ op: "add_membership", user_id: p.id, start: st, method: m.trim().toLowerCase() === "cash" ? "cash" : "venmo" });
+                    const m = prompt("Paid by? (venmo / cash / waive — waive = work trade, no payment recorded)", "venmo"); if (m === null) return;
+                    const t = m.trim().toLowerCase();
+                    post({ op: "add_membership", user_id: p.id, start: st, method: t.startsWith("waiv") ? "waived" : t === "cash" ? "cash" : "venmo" });
                   }}>{(p.member_until && p.member_until >= today()) ? "renew membership" : "+ membership"}</button>}
                   {p.id && <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1
                       ${parseFloat(pend[p.id]?.amount) > 0 ? "border-ea-gold bg-ea-gold/15" : "border-black/15"}`}>
