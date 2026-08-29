@@ -43,8 +43,8 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   const byEmail: Record<string, any> = {};
   for (const u of users) byEmail[u.email.toLowerCase()] = { ...u, classes: [], opengym: [], packs: [], payments: [] };
   const guest = (e: string) => byEmail[e] || (byEmail[e] = { id: null, name: "(no account)", email: e, classes: [], opengym: [], packs: [], payments: [] });
-  for (const s of su) guest(s.email.toLowerCase()).classes.push({ id: s.id, paid: s.paid, date: s.date, title: s.title, time: s.time, pay_method: s.pay_method, category: s.category, instructor: s.instructor });
-  for (const o of og) guest(o.email.toLowerCase()).opengym.push({ id: o.id, paid: o.paid, date: o.date, time: o.time, pay_method: o.pay_method });
+  for (const s of su) guest(s.email.toLowerCase()).classes.push({ id: s.id, paid: s.paid, date: s.date, title: s.title, time: s.time, pay_method: s.pay_method, category: s.category, instructor: s.instructor, billable: s.pay_method !== "pack" && s.pay_method !== "external" && s.pricing !== "external" ? 1 : 0 });
+  for (const o of og) guest(o.email.toLowerCase()).opengym.push({ id: o.id, paid: o.paid, date: o.date, time: o.time, pay_method: o.pay_method, billable: o.pay_method !== "pack" ? 1 : 0 });
   for (const p of packs) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].packs.push(p); }
   for (const p of pays) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].payments.push(p); }
 
@@ -62,8 +62,29 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
   const D = env.DB;
   if (b.op === "mark_paid") {
     const tbl = b.kind === "opengym" ? "opengym" : "signups";
-    await env.DB.prepare(`UPDATE ${tbl} SET paid=?1 WHERE id=?2`).bind(b.paid ? 1 : 0, Number(b.id)).run();
-    return json({ ok: true });
+    const res = await env.DB.prepare(`UPDATE ${tbl} SET paid=?1 WHERE id=?2 AND paid=?3`).bind(b.paid ? 1 : 0, Number(b.id), b.paid ? 0 : 1).run();
+    if (!res.meta.changes) return json({ ok: true, noop: true }); // already in that state (double-click) — no credit touched
+    let credit_used = 0;
+    if (b.paid) {
+      // dummy-proof: paying a billable row consumes credit on file, same as apply_credit
+      const row: any = tbl === "opengym"
+        ? await D.prepare("SELECT email, 10 AS price, pay_method FROM opengym WHERE id=?1").bind(Number(b.id)).first()
+        : await D.prepare(`SELECT s.email, s.pay_method, c.pricing, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price
+             FROM signups s JOIN classes c ON c.id=s.class_id WHERE s.id=?1`).bind(Number(b.id)).first();
+      const billable = row && row.pay_method !== "pack" && row.pay_method !== "external" && row.pricing !== "external";
+      const usr: any = billable && await D.prepare("SELECT id FROM users WHERE lower(email)=?1").bind(row.email.toLowerCase()).first();
+      if (usr) {
+        let left = row.price;
+        const rows = (await D.prepare("SELECT id, unallocated FROM payments WHERE user_id=?1 AND unallocated>0 ORDER BY id").bind(usr.id).all()).results as any[];
+        for (const r of rows) {
+          if (left <= 0) break;
+          const take = Math.min(r.unallocated, left);
+          await D.prepare("UPDATE payments SET unallocated = unallocated - ?2 WHERE id=?1").bind(r.id, take).run();
+          left -= take; credit_used += take;
+        }
+      }
+    }
+    return json({ ok: true, credit_used });
   }
   if (b.op === "add_pack") {
     if (!b.user_id || !(b.size > 0)) return json({ error: "user_id + size" }, 400);
