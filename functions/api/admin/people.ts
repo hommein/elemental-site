@@ -9,10 +9,10 @@ async function admin(env: AuthEnv, request: Request) {
 const PRICE = priceOf;
 async function unpaidItems(D: D1Database, email: string) {
   const em = email.toLowerCase();
-  const og = (await D.prepare("SELECT id,date,time FROM opengym WHERE lower(email)=?1 AND paid=0 AND pay_method!='pack'").bind(em)
+  const og = (await D.prepare("SELECT id,date,time FROM opengym WHERE lower(email)=?1 AND paid=0 AND (pay_method IS NULL OR pay_method!='pack')").bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "opengym", title: "Open Gym" }));
   const cl = (await D.prepare(`SELECT s.id, s.date, c.time, c.title, c.category, c.price FROM signups s JOIN classes c ON c.id=s.class_id
-    WHERE lower(s.email)=?1 AND s.paid=0 AND s.pay_method!='pack' AND c.pricing != 'external'`).bind(em)
+    WHERE lower(s.email)=?1 AND s.paid=0 AND (s.pay_method IS NULL OR s.pay_method NOT IN ('pack','external')) AND c.pricing != 'external' AND c.title != 'Community Jam'`).bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "signups" }));
   return [...og, ...cl].map((r: any) => ({ ...r, price: r.price ?? PRICE(r) }))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));

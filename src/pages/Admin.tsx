@@ -114,7 +114,7 @@ const pkBal = (p: any): number | null =>
   p.packs && p.packs.length ? p.packs.reduce((s: number, k: any) => s + k.remaining, 0) : null;
 // canonical "unpaid bookings" + "owes money" — the ONLY definitions; stat cards and
 // member-card badges must always agree.
-const unpaidOf = (p: any) => [...p.classes, ...p.opengym].filter((x: any) => x.pay_method !== "pack" && !x.paid);
+const unpaidOf = (p: any) => [...p.classes, ...p.opengym].filter((x: any) => x.pay_method !== "pack" && x.pay_method !== "external" && x.title !== "Community Jam" && !x.paid);
 const owesOf = (p: any) => { const b = pkBal(p); return (b != null && b < 0) || unpaidOf(p).length > 0; };
 
 
@@ -476,7 +476,7 @@ function TallyTab() {
           (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
         const fmtD = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
         const fmtT = (t: string) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
-        const payBtn = (x: any, kind: string) => x.pay_method === "pack" ? null : x.paid ?
+        const payBtn = (x: any, kind: string) => x.pay_method === "pack" || x.pay_method === "external" || x.title === "Community Jam" ? null : x.paid ?
           <button className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-emerald-100 text-emerald-800"
             title="Click to mark unpaid" disabled={busy}
             onClick={() => post({ op: "mark_paid", kind, id: x.id, paid: 0 })}>paid ✓</button> :
@@ -487,7 +487,7 @@ function TallyTab() {
           </>;
         const payChip = (m: string | null) => m ?
           <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " +
-            (m === "pack" ? "bg-ea-gold/40 text-ea-olive" : m === "venmo" ? "bg-sky-100 text-sky-800" : "bg-emerald-100 text-emerald-800")}>{m}</span> : null;
+            (m === "pack" ? "bg-ea-gold/40 text-ea-olive" : m === "venmo" ? "bg-sky-100 text-sky-800" : m === "external" ? "bg-ea-olive/15 text-ea-olive" : "bg-emerald-100 text-emerald-800")}>{m === "external" ? "pays instructor" : m}</span> : null;
         return (
           <div key={p.email} className="border border-ea-accent/40 rounded-lg p-4 mb-3 bg-white">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 border-b border-ea-accent/20">
