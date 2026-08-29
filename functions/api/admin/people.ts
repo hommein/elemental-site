@@ -6,15 +6,15 @@ async function admin(env: AuthEnv, request: Request) {
 }
 
 
-const PRICE = (r: any) => r.kind === "opengym" ? 10 : r.title === "Community Jam" ? 10 : (r.category === "flex" || r.category === "flow") ? 12 : 30;
+const PRICE = priceOf;
 async function unpaidItems(D: D1Database, email: string) {
   const em = email.toLowerCase();
   const og = (await D.prepare("SELECT id,date,time FROM opengym WHERE lower(email)=?1 AND paid=0 AND pay_method!='pack'").bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "opengym", title: "Open Gym" }));
-  const cl = (await D.prepare(`SELECT s.id, s.date, c.time, c.title, c.category FROM signups s JOIN classes c ON c.id=s.class_id
-    WHERE lower(s.email)=?1 AND s.paid=0 AND s.pay_method!='pack'`).bind(em)
+  const cl = (await D.prepare(`SELECT s.id, s.date, c.time, c.title, c.category, c.price FROM signups s JOIN classes c ON c.id=s.class_id
+    WHERE lower(s.email)=?1 AND s.paid=0 AND s.pay_method!='pack' AND c.pricing != 'external'`).bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "signups" }));
-  return [...og, ...cl].map((r: any) => ({ ...r, price: PRICE(r) }))
+  return [...og, ...cl].map((r: any) => ({ ...r, price: r.price ?? PRICE(r) }))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 }
 
@@ -33,10 +33,10 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
 
   const users = (await env.DB.prepare("SELECT id,name,email,phone,created_at FROM users ORDER BY name").all()).results as any[];
   const su = (await env.DB.prepare(
-    `SELECT s.id, s.paid, s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor FROM signups s JOIN classes c ON c.id=s.class_id
+    `SELECT s.id, s.paid, s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price, c.pricing FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2 ORDER BY s.date, c.time`).bind(week, weekEnd).all()).results as any[];
   const og = (await env.DB.prepare(
-    "SELECT id, paid, email, date, time, pay_method FROM opengym WHERE date >= ?1 AND date < ?2").bind(week, weekEnd).all()).results as any[];
+    "SELECT id, paid, email, date, time, pay_method, 10 AS price FROM opengym WHERE date >= ?1 AND date < ?2").bind(week, weekEnd).all()).results as any[];
   const packs = (await env.DB.prepare("SELECT * FROM classpacks ORDER BY purchased_at DESC, id DESC").all()).results as any[];
   const pays = (await env.DB.prepare("SELECT * FROM payments ORDER BY date DESC, id DESC").all()).results as any[];
 

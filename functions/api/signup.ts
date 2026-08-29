@@ -16,7 +16,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   const cls: any = await env.DB.prepare("SELECT * FROM classes WHERE id=? AND active=1").bind(class_id).first();
   if (!cls) return err("Class not found", 404);
-  if (cls.pricing === "external") return err("This class is booked through Selah Dance", 400);
+  if (cls.pricing === "external") return err(cls.category === "selah" ? "This class is booked through Selah Dance" : `This class is booked directly with the instructor — ${cls.pay_note || "see the class details"}`, 400);
   const dow = new Date(date + "T00:00:00Z").getUTCDay();
   if (dow !== cls.day) return err("Date does not match this class's weekday", 400);
 
@@ -33,8 +33,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let packUid: number | null = null;
   let packLeft: number | null = null;
   if (pay_method === "pack") {
-    if (cls.title === "Community Jam")
-      return err("Community Jam is $10 like open gym — choose Venmo or cash", 400);
+    if (cls.pricing !== "dropin")
+      return err(cls.title === "Community Jam"
+        ? "Community Jam is $10 like open gym — choose Venmo or cash"
+        : "This class is donation-based ($" + (cls.price ?? 12) + " suggested) and isn't covered by class packs — choose Venmo or cash", 400);
     const u: any = await env.DB.prepare("SELECT id FROM users WHERE email=?1").bind(em).first();
     // oldest pack with balance first; otherwise newest pack (balance may go negative
     // — studio records Venmo payments late, so members can book ahead of the update)

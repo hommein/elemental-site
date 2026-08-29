@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 type Cls = {
   id: number; title: string; instructor: string | null; day: number; time: string;
   duration_min: number; category: string; pricing: string; capacity: number; room: string;
+  price: number | null; pay_note: string | null;
   date: string; taken: number;
 };
 type Og = { date: string; time: string; room: string; n: number };
@@ -367,7 +368,8 @@ function Tile({ c, onPick, abs, admin }: { c: Cls; onPick: () => void; abs?: boo
     return past && !admin ? <div className={og}>{body}</div> : <button onClick={onPick} className={og}>{body}</button>;
   }
   const full = c.taken >= c.capacity;
-  const ext = c.pricing === "external";
+  const ext = c.pricing === "external" && c.category === "selah";
+  const guestExt = c.pricing === "external" && c.category !== "selah";
   const past = `${c.date} ${c.time}` <= ptNow();
   const cls = `text-left border rounded-lg overflow-hidden transition block
     ${abs ? "h-full w-full px-1.5 py-1 text-xs leading-tight" : "px-2.5 py-2 text-sm"}
@@ -380,8 +382,8 @@ function Tile({ c, onPick, abs, admin }: { c: Cls; onPick: () => void; abs?: boo
       <div className={`text-ea-espresso/70 truncate ${abs ? "text-[11px]" : "text-xs"}`}>
         {fmt(c.time)}{c.instructor ? ` · ${c.instructor}` : ""}{abs ? "" : ` · ${c.room}`}
       </div>
-      {ext
-        ? <div className={`italic ${abs ? "text-[11px]" : "text-xs mt-0.5"}`}>via Selah Dance ↗</div>
+      {(ext || guestExt)
+        ? <div className={`italic ${abs ? "text-[11px]" : "text-xs mt-0.5"}`}>{ext ? "via Selah Dance ↗" : `$${c.price ?? ""} · pay instructor`}</div>
         : <div className={`${abs ? "text-[11px]" : "text-xs mt-0.5"} ${full ? "text-red-700" : "text-ea-olive"}`}>
             {full ? "Full" : `${c.capacity - c.taken}/${c.capacity} open`}
           </div>}
@@ -449,6 +451,26 @@ function AdminRoster({ cls, onChanged }: { cls: Cls; onChanged: () => void }) {
 
 function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) => void }) {
   const isJam = cls.title === "Community Jam";
+  const isExt = cls.pricing === "external" && cls.category !== "selah";
+  const isDon = cls.pricing === "donation";
+  if (isExt) return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => onClose(false)}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+        <h3 className="font-serif text-2xl mb-1">{cls.title}</h3>
+        <p className="text-sm text-ea-espresso/70 mb-3">
+          {DAYS[cls.day]} {prettyDate(cls.date)} at {fmt(cls.time)}{cls.instructor ? ` with ${cls.instructor}` : ""}
+        </p>
+        {cls.price != null && <p className="font-medium mb-2">${cls.price} per class</p>}
+        <p className="text-sm mb-4 whitespace-pre-wrap">
+          This guest class is booked and paid directly with the instructor{cls.instructor ? ` (${cls.instructor})` : ""}.
+          {cls.pay_note ? `
+
+${cls.pay_note}` : ""}
+        </p>
+        <button className="btn w-full" onClick={() => onClose(false)}>Close</button>
+      </div>
+    </div>
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
@@ -522,7 +544,7 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
               className="border border-black/20 rounded-lg px-3 py-2" />
             <fieldset className="flex flex-col gap-1.5 text-sm">
               <legend className="font-medium mb-1">How are you paying?{isJam && " ($10 — same as open gym)"}</legend>
-              {packLeft != null && !isJam && (
+              {packLeft != null && !isJam && !isDon && (
                 <label className="flex items-center gap-2">
                   <input type="radio" name="pay" checked={pay === "pack"} onChange={() => setPay("pack")} required />
                   Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left{packLeft <= 0 ? " — ok to book, settle up via Venmo" : ""})</span>
@@ -530,11 +552,11 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
               )}
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
-                {isJam ? "$10 — Venmo" : "Single class — Venmo"}
+                {isJam ? "$10 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : "Single class — Venmo"}
               </label>
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "cash"} onChange={() => setPay("cash")} required />
-                {isJam ? "$10 — cash in studio" : "Single class — cash in studio"}
+                {isJam ? "$10 — cash in studio" : isDon ? `$${cls.price ?? 12} suggested donation — cash in studio` : "Single class — cash in studio"}
               </label>
             </fieldset>
             {msg && <p className="text-sm text-red-700">{msg}</p>}

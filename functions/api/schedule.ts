@@ -12,7 +12,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     dates.push(d.toISOString().slice(0, 10));
   }
   const { results: classes } = await env.DB.prepare(
-    "SELECT id,title,instructor,day,time,duration_min,category,pricing,capacity,room FROM classes WHERE active=1 ORDER BY day,time,sort"
+    "SELECT id,title,instructor,day,time,duration_min,category,pricing,capacity,room,price,pay_note FROM classes WHERE active=1 ORDER BY day,time,sort"
   ).all();
   const { results: counts } = await env.DB.prepare(
     "SELECT class_id,date,COUNT(*) n FROM signups WHERE date>=? AND date<=? GROUP BY class_id,date"

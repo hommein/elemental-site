@@ -189,8 +189,9 @@ function HBars({ items, color }: { items: { label: string; n: number; color?: st
     {!items.length && <p className="text-xs opacity-50 italic">no data yet</p>}
   </div>;
 }
-function Donut({ parts }: { parts: { label: string; n: number; color: string }[] }) {
+function Donut({ parts, money }: { parts: { label: string; n: number; color: string }[]; money?: boolean }) {
   const tot = parts.reduce((s, p) => s + p.n, 0);
+  const F = (n: number) => money ? "$" + (Math.round(n * 100) / 100) : n;
   if (!tot) return <p className="text-xs opacity-50 italic">no data yet</p>;
   let acc = 0; const R = 15.9155;
   return <div className="flex items-center gap-4">
@@ -200,12 +201,12 @@ function Donut({ parts }: { parts: { label: string; n: number; color: string }[]
         return <circle key={p.label} cx="21" cy="21" r={R} fill="none" stroke={p.color} strokeWidth="7"
           strokeDasharray={`${frac * 100} ${100 - frac * 100}`} strokeDashoffset={25 - off * 100} />;
       })}
-      <text x="21" y="22.5" textAnchor="middle" fontSize="7" fontWeight="600" fill="#5a463a">{tot}</text>
+      <text x="21" y="22.5" textAnchor="middle" fontSize={money ? "5.5" : "7"} fontWeight="600" fill="#5a463a">{F(tot)}</text>
     </svg>
     <div className="space-y-0.5">
       {parts.map(p => <div key={p.label} className="text-[11px] flex items-center gap-1.5">
         <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: p.color }} />
-        {p.label} — <b>{p.n}</b> ({Math.round(p.n / tot * 100)}%)</div>)}
+        {p.label} — <b>{F(p.n)}</b> ({Math.round(p.n / tot * 100)}%)</div>)}
     </div>
   </div>;
 }
@@ -237,7 +238,7 @@ function TrendsTab() {
       </ChartCard>
       <div className="grid gap-3">
         <ChartCard title="How classes were paid (90 days)">
-          <Donut parts={[
+          <Donut money parts={[
             { label: "pack", n: st.payMix?.pack || 0, color: CH.gold },
             { label: "venmo", n: st.payMix?.venmo || 0, color: CH.sky },
             { label: "cash", n: st.payMix?.cash || 0, color: CH.green },
@@ -355,10 +356,15 @@ function TallyTab() {
         const og = ppl.flatMap(p => p.opengym);
         const active = ppl.filter(p => p.classes.length + p.opengym.length > 0);
         const by = (m: string) => [...cls, ...og].filter((c: any) => c.pay_method === m).length;
+        const val = (c: any) => c.pay_method === "pack" ? 27.5 : (c.price ?? 0);
+        const by$ = (m: string) => [...cls, ...og].filter((c: any) => c.pay_method === m).reduce((s: number, c: any) => s + val(c), 0);
+        const f$ = (n: number) => "$" + (Math.round(n * 100) / 100);
         const owing = ppl.filter(owesOf).length;
         const paysIn = ppl.flatMap(p => p.payments || []).filter((x: any) => inR(x.date));
         const paid = paysIn.reduce((s: number, x: any) => s + (x.amount || 0), 0);
-        const packsSold = ppl.flatMap(p => p.packs || []).filter((k: any) => inR((k.purchased_at || "").slice(0, 10))).length;
+        // packs SOLD = money received for pack credits (payments.pack_credits), not pack bookkeeping rows
+        const packCr = paysIn.reduce((s: number, x: any) => s + (x.pack_credits || 0), 0);
+        const packsSold = Math.round(packCr / 4 * 10) / 10;
         const label = scale === "week" ? "this week" : "this month";
         const stat = (n: any, l: string) => (
           <div className="bg-white border border-ea-accent/40 rounded p-2 text-center min-w-[5.5rem]">
@@ -370,12 +376,12 @@ function TallyTab() {
             {stat(active.length, "active students")}
             {stat(cls.length, "class signups")}
             {stat(og.length, "open gym visits")}
-            {stat(by("pack"), "paid by pack")}
-            {stat(by("venmo"), "venmo")}
-            {stat(by("cash"), "cash")}
+            {stat(f$(by$("pack")), `by pack (${by("pack")})`)}
+            {stat(f$(by$("venmo")), `venmo (${by("venmo")})`)}
+            {stat(f$(by$("cash")), `cash (${by("cash")})`)}
             {stat(owing, "owe money")}
-            {stat("$" + (paid % 1 ? paid.toFixed(2) : paid), "payments logged")}
-            {stat(packsSold, "packs sold")}
+            {stat(f$(paid), "payments logged")}
+            {stat(packsSold, `packs sold (${f$(packCr * 27.5)})`)}
             {stat("$" + ppl.reduce((s: number, p: any) => s + (p.credit || 0), 0).toFixed(2), "credit on file")}
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 mb-4">
@@ -415,12 +421,12 @@ function TallyTab() {
                     wog.filter((o: any) => wkIdx(o.date) === i).length])} />;
               })()}
             </ChartCard>
-            <ChartCard title={`How classes were paid (${label})`}>
-              <Donut parts={[
-                { label: "pack", n: by("pack"), color: CH.gold },
-                { label: "venmo", n: by("venmo"), color: CH.sky },
-                { label: "cash", n: by("cash"), color: CH.green },
-                { label: "unset", n: cls.length - by("pack") - by("venmo") - by("cash"), color: "#d8d0c8" }]} />
+            <ChartCard title={`How classes were paid (${label}, $)`}>
+              <Donut money parts={[
+                { label: "pack", n: by$("pack"), color: CH.gold },
+                { label: "venmo", n: by$("venmo"), color: CH.sky },
+                { label: "cash", n: by$("cash"), color: CH.green },
+                { label: "unset", n: [...cls, ...og].filter((c: any) => !["pack","venmo","cash"].includes(c.pay_method)).reduce((s: number, c: any) => s + val(c), 0), color: "#d8d0c8" }]} />
             </ChartCard>
           </div>
         </>
