@@ -1,1 +1,1 @@
-ALTER TABLE opengym ADD COLUMN pay_method TEXT;
+ALTER TABLE payments ADD COLUMN unallocated REAL NOT NULL DEFAULT 0;

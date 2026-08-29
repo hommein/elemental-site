@@ -124,6 +124,7 @@ function PackBox() {
         ? <p>You have <b>{pack.remaining}</b> classes left in your pack.{pack.remaining < 0 &&
             <span className="block text-sm text-ea-brown mt-1">A negative balance just means you booked ahead of a payment being recorded — settle up via Venmo below.</span>}</p>
         : <p>No class pack on file — pay per class, or ask at the studio about packs.</p>}
+      {d.credit > 0 && <p className="mt-1">You also have <b>${d.credit.toFixed(2)}</b> unused credit on file — it's automatically applied when the studio records your bookings or next pack.</p>}
       {(d.payments || []).length > 0 &&
         <p className="opacity-70 mt-1">Last payment: ${d.payments[0].amount} ({d.payments[0].method}, {d.payments[0].date})</p>}
       <a className="btn btn--accent inline-block mt-3" target="_blank" rel="noreferrer"

@@ -48,6 +48,8 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   for (const p of packs) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].packs.push(p); }
   for (const p of pays) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].payments.push(p); }
 
+  const crs = (await env.DB.prepare("SELECT user_id, SUM(unallocated) c FROM payments GROUP BY user_id").all()).results as any[];
+  for (const c of crs) { const u = users.find(u => u.id === c.user_id); if (u) byEmail[u.email.toLowerCase()].credit = c.c || 0; }
   const people = Object.values(byEmail).filter((p: any) =>
     p.classes.length || p.opengym.length || p.packs.length || p.payments.length || p.id);
   return json({ week, people });
@@ -74,7 +76,9 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     if (!b.user_id || !(b.amount > 0)) return json({ error: "user_id + amount" }, 400);
     const usr = await D.prepare("SELECT email FROM users WHERE id=?1").bind(b.user_id).first<any>();
     const items = usr?.email ? await unpaidItems(D, usr.email) : [];
-    let pool = Number(b.amount);
+    const cr = await D.prepare("SELECT COALESCE(SUM(unallocated),0) c FROM payments WHERE user_id=?1").bind(b.user_id).first<any>();
+    const credit = Number(cr?.c || 0);
+    let pool = Number(b.amount) + credit;
     const nPacks = Math.floor(pool / 110);
     const credits = nPacks * 4; pool -= nPacks * 110;
     const out = items.map((it: any) => {
@@ -82,33 +86,38 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
       if (cover) pool -= it.price;
       return { kind: it.kind, id: it.id, date: it.date, time: it.time, title: it.title, price: it.price, cover };
     });
-    return json({ credits, items: out, leftover: pool });
+    return json({ credits, items: out, leftover: pool, credit });
   } else if (b.op === "add_payment") {
     if (!b.user_id || !(b.amount > 0)) return json({ error: "user_id + amount" }, 400);
     await D.prepare("INSERT INTO payments (user_id,amount,method,note,date) VALUES (?1,?2,?3,?4,COALESCE(?5,date('now')))")
       .bind(b.user_id, b.amount, b.method || "venmo", b.note || null, b.date || null).run();
-    let credits = 0, settled = 0, pool = Number(b.amount);
+    const crRow = await D.prepare("SELECT COALESCE(SUM(unallocated),0) c FROM payments WHERE user_id=?1").bind(b.user_id).first<any>();
+    const prevCredit = Number(crRow?.c || 0);
+    let credits = 0, settled = 0, spent = 0, pool = Number(b.amount) + prevCredit;
     const addCredits = async (n: number) => {
       if (!(n > 0)) return;
       const newest = await D.prepare("SELECT id FROM classpacks WHERE user_id=?1 ORDER BY id DESC LIMIT 1").bind(b.user_id).first<any>();
       if (newest) await D.prepare("UPDATE classpacks SET remaining = remaining + ?2 WHERE id=?1").bind(newest.id, n).run();
       else await D.prepare("INSERT INTO classpacks (user_id,size,remaining,note) VALUES (?1,?2,?2,'auto: payment')").bind(b.user_id, n).run();
     };
+    const usr = await D.prepare("SELECT email FROM users WHERE id=?1").bind(b.user_id).first<any>();
     if (b.plan) {
       // admin-confirmed distribution: apply exactly what was approved
       credits = Math.max(0, b.plan.credits | 0);
       await addCredits(credits);
+      spent += credits * 27.5;
+      const priced = usr?.email ? await unpaidItems(D, usr.email) : [];
       for (const it of (b.plan.settle || [])) {
         if (it.kind !== "signups" && it.kind !== "opengym") continue;
         await D.prepare(`UPDATE ${it.kind} SET paid=1 WHERE id=?1`).bind(it.id).run();
+        spent += priced.find((x: any) => x.kind === it.kind && x.id === it.id)?.price || 0;
         settled++;
       }
-      pool = 0;
+      pool = Math.max(0, Number(b.amount) + prevCredit - spent);
     } else {
       // auto-settle: $110 chunks buy 4 pack credits; the rest pays off unpaid bookings oldest-first
       const nPacks = Math.floor(pool / 110);
       if (nPacks > 0) { pool -= nPacks * 110; credits = nPacks * 4; await addCredits(credits); }
-      const usr = await D.prepare("SELECT email FROM users WHERE id=?1").bind(b.user_id).first<any>();
       if (usr?.email && pool > 0) {
         for (const it of await unpaidItems(D, usr.email)) {
           if (pool < it.price) continue;
@@ -117,6 +126,10 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
         }
       }
     }
+    // consolidate credit-on-file onto this newest payment
+    await D.prepare("UPDATE payments SET unallocated=0 WHERE user_id=?1").bind(b.user_id).run();
+    const newPay = await D.prepare("SELECT id FROM payments WHERE user_id=?1 ORDER BY id DESC LIMIT 1").bind(b.user_id).first<any>();
+    if (newPay) await D.prepare("UPDATE payments SET unallocated=?2 WHERE id=?1").bind(newPay.id, pool).run();
     return json({ ok: true, credits_added: credits, bookings_settled: settled, leftover: pool });
   } else if (b.op === "edit_payment") {
     await D.prepare("UPDATE payments SET amount=COALESCE(?2,amount), method=COALESCE(?3,method), date=COALESCE(?4,date), note=COALESCE(?5,note) WHERE id=?1")

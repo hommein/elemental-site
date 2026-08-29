@@ -278,7 +278,7 @@ function TallyTab() {
   };
   const post = async (body: any) => { setBusy(true); await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); await load(); setBusy(false); };
   type PlanItem = { kind: string; id: number; date: string; time: string; title: string; price: number; cover: boolean };
-  type Pend = { amount: string; method: string; plan?: { credits: number; items: PlanItem[] } };
+  type Pend = { amount: string; method: string; plan?: { credits: number; items: PlanItem[]; credit: number } };
   const [pend, setPend] = useState<Record<number, Pend>>({});
   const setP = (id: number, patch: any) => setPend(x => ({ ...x, [id]: { ...{ amount: "", method: "venmo" }, ...x[id], ...patch } }));
   const pendIds = Object.keys(pend).filter(k => parseFloat(pend[+k]?.amount) > 0).map(Number);
@@ -287,11 +287,11 @@ function TallyTab() {
     if (!(amt > 0)) return;
     const r = await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ op: "preview_payment", user_id: id, amount: amt }) }).then(r => r.json());
-    setP(id, { plan: { credits: r.credits, items: r.items } });
+    setP(id, { plan: { credits: r.credits, items: r.items, credit: r.credit || 0 } });
   };
   const leftover = (pd: Pend) => {
     if (!pd.plan) return 0;
-    return (parseFloat(pd.amount) || 0) - pd.plan.credits * 27.5
+    return (parseFloat(pd.amount) || 0) + (pd.plan.credit || 0) - pd.plan.credits * 27.5
       - pd.plan.items.filter(i => i.cover).reduce((s, i) => s + i.price, 0);
   };
   const saveAll = async () => {
@@ -358,6 +358,7 @@ function TallyTab() {
             {stat(owing, "owe money")}
             {stat("$" + paid, "payments logged")}
             {stat(packsSold, "packs sold")}
+            {stat("$" + ppl.reduce((s: number, p: any) => s + (p.credit || 0), 0).toFixed(2), "credit on file")}
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 mb-4">
             <ChartCard title={`Most popular classes (${label})`}>
@@ -447,6 +448,7 @@ function TallyTab() {
         const smsBody = encodeURIComponent(
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} classes left.` : "") +
+          (p.credit > 0 ? ` You have $${p.credit.toFixed(2)} credit on file.` : "") +
           (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
         const fmtD = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
         const fmtT = (t: string) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
@@ -472,6 +474,7 @@ function TallyTab() {
                 <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
                   {pack ? `pack ${pack.remaining}` : "no pack"}
                 </span>
+                {p.credit > 0 && <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-ea-gold/40 text-ea-olive">${p.credit.toFixed(2)} credit</span>}
                 {owes && <details className="relative">
                   <summary className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700 cursor-pointer list-none select-none">owes ▾</summary>
                   <div className="absolute right-0 mt-1 z-10 bg-white border border-red-200 rounded-lg shadow-lg p-2.5 text-xs w-60 font-normal">
@@ -518,6 +521,7 @@ function TallyTab() {
                       <span className="opacity-60 w-24 shrink-0">{new Date(pm.date + "T00:00:00Z").toLocaleString("en-US", { month: "short", day: "numeric", year: "2-digit", timeZone: "UTC" })}</span>
                       <b className="w-14">${pm.amount}</b>
                       <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " + (pm.method === "venmo" ? "bg-sky-100 text-sky-800" : "bg-emerald-100 text-emerald-800")}>{pm.method}</span>
+                      {pm.unallocated > 0 && <span className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-ea-gold/40 text-ea-olive" title="Not yet applied to a pack or booking">${pm.unallocated.toFixed(2)} unallocated</span>}
                       {pm.note && <span className="text-xs opacity-60 truncate">{pm.note}</span>}
                       <span className="ml-auto flex gap-1">
                         <button className="text-xs underline opacity-60 hover:opacity-100" disabled={busy} onClick={() => {
@@ -559,6 +563,7 @@ function TallyTab() {
                   return (
                     <div className="mt-2 rounded-lg border border-ea-gold bg-ea-gold/10 px-2.5 py-2 text-xs space-y-1.5">
                       <div className="font-semibold opacity-70">How ${pd.amount} gets applied — confirm or adjust:</div>
+                      {plan.credit > 0 && <div className="text-ea-olive">+ ${plan.credit.toFixed(2)} existing credit on file is included</div>}
                       <label className="flex items-center gap-1.5">
                         <span>Add</span>
                         <input inputMode="numeric" value={plan.credits}
@@ -574,7 +579,7 @@ function TallyTab() {
                         </label>
                       )) : <div className="opacity-50 italic">no unpaid bookings</div>}
                       <div className={lo < 0 ? "text-red-700 font-semibold" : "opacity-60"}>
-                        {lo < 0 ? `⚠ over-allocated by $${Math.abs(lo).toFixed(2)}` : `$${lo.toFixed(2)} unallocated (recorded as credit toward future)`}
+                        {lo < 0 ? `⚠ over-allocated by $${Math.abs(lo).toFixed(2)}` : `$${lo.toFixed(2)} stays on file as credit (shown on their card + account)`}
                       </div>
                     </div>
                   );
