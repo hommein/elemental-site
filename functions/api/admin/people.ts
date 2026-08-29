@@ -38,7 +38,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   const og = (await env.DB.prepare(
     "SELECT id, paid, email, date, time, pay_method FROM opengym WHERE date >= ?1 AND date < ?2").bind(week, weekEnd).all()).results as any[];
   const packs = (await env.DB.prepare("SELECT * FROM classpacks ORDER BY purchased_at DESC, id DESC").all()).results as any[];
-  const pays = (await env.DB.prepare("SELECT * FROM payments WHERE date >= date('now','-90 days') ORDER BY date DESC, id DESC").all()).results as any[];
+  const pays = (await env.DB.prepare("SELECT * FROM payments ORDER BY date DESC, id DESC").all()).results as any[];
 
   const byEmail: Record<string, any> = {};
   for (const u of users) byEmail[u.email.toLowerCase()] = { ...u, classes: [], opengym: [], packs: [], payments: [] };
