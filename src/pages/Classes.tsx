@@ -576,6 +576,10 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
           Train independently in any open one-hour slot. $10 per session, or free with an
           Open Gym membership. Pick a time:
         </p>
+        {adm && state !== "done" && (
+          <p className="text-xs bg-ea-gold/15 border border-ea-gold/50 rounded px-2 py-1 mb-3">
+            Admin: select any slot (even full or past) to view and edit its roster below.
+          </p>)}
         {state === "done" ? (
           <>
             <p className="text-ea-olive font-medium mb-4">{msg}</p>
@@ -594,7 +598,7 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
             <div className="flex flex-col gap-1">
               {slots.map(sl => {
                 const on = slot === sl.time;
-                const off = sl.left === 0;
+                const off = sl.left === 0 && !adm;
                 return (
                   <button type="button" key={sl.time} disabled={off}
                     onClick={() => setSlot(sl.time)}
