@@ -403,7 +403,7 @@ function TallyTab() {
                 {p.opengym.map((o: any, i: number) => (
                   <div key={"o" + i} className="text-sm flex items-baseline gap-2">
                     <span className="opacity-60 w-24 shrink-0">{fmtD(o.date)}</span>
-                    <span>{fmtT(o.time)} · Open Gym ($10)</span>
+                    <span>{fmtT(o.time)} · Open Gym ($10)</span>{payChip(o.pay_method)}
                   </div>))}
               </div>
               <div>

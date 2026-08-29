@@ -7,6 +7,7 @@ const CAP = 2; // spots per room per hour
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let b: any; try { b = await request.json(); } catch { return err("Invalid JSON", 400); }
   const { date, time, name, email } = b || {};
+  const pay = ["venmo", "cash"].includes(b?.pay_method) ? b.pay_method : "cash";
   if (!date || !time || !name || !email) return err("date, time, name, email required", 400);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:00$/.test(time)) return err("Bad date/time (hour slots only)", 400);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err("Bad email", 400);
@@ -50,8 +51,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!room) return err("That time is fully booked or in use by a class", 409);
 
   try {
-    await env.DB.prepare("INSERT INTO opengym(date,time,room,name,email) VALUES(?,?,?,?,?)")
-      .bind(date, time, room, name.trim().slice(0, 80), em).run();
+    await env.DB.prepare("INSERT INTO opengym(date,time,room,name,email,pay_method) VALUES(?,?,?,?,?,?)")
+      .bind(date, time, room, name.trim().slice(0, 80), em, pay).run();
   } catch (e: any) {
     if (String(e).includes("UNIQUE")) return err("You already booked this slot", 409);
     throw e;

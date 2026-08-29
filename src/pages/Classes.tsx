@@ -525,9 +525,11 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
   const [slot, setSlot] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [pay, setPay] = useState<"venmo" | "cash" | "">("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [msg, setMsg] = useState("");
-  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); } }); }, []);
+  const [adm, setAdm] = useState(false);
+  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); setAdm(!!u.is_admin); } }); }, []);
 
 
   const slots = useMemo(() => {
@@ -547,10 +549,10 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
         const n = data.opengym.find(o => o.date === date && o.time === t && o.room === room)?.n || 0;
         left += Math.max(0, OG_CAP - n);
       }
-      if (`${date} ${t}` > ptNow()) out.push({ time: t, left });
+      if (adm || `${date} ${t}` > ptNow()) out.push({ time: t, left });
     }
     return out;
-  }, [data, day, date]);
+  }, [data, day, date, adm]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -558,7 +560,7 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
     setState("busy"); setMsg("");
     const r = await fetch("/api/opengym", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ date, time: slot, name, email }),
+      body: JSON.stringify({ date, time: slot, name, email, pay_method: pay || "cash" }),
     });
     const j = await r.json();
     if (r.ok) { setState("done"); setMsg("You're booked! See you there."); }
@@ -576,6 +578,11 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
         {state === "done" ? (
           <>
             <p className="text-ea-olive font-medium mb-4">{msg}</p>
+            {pay === "venmo" && (
+              <a className="btn btn--accent w-full mb-2 block text-center" target="_blank" rel="noreferrer"
+                href="https://account.venmo.com/u/Katelyn-Carano">
+                Pay $10 on Venmo (note: "Aerial")
+              </a>)}
             {slot && <button className="btn w-full mb-2" onClick={() => openGcal("Open Gym", date, slot, 60)}>
               📅 Add to Google Calendar
             </button>}
@@ -603,12 +610,75 @@ function OpenGymModal({ day, data, onClose }: { day: number; data: Sched; onClos
               })}
               {slots.every(s => s.left === 0) && <p className="text-sm text-ea-espresso/60">No open slots this day.</p>}
             </div>
+            {adm && slot && <OgRoster date={date} time={slot} />}
+            <div className="text-sm">
+              <p className="font-medium mb-1">How will you pay? ($10)</p>
+              <label className="flex items-center gap-2 mb-1">
+                <input type="radio" name="ogpay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
+                Venmo <span className="opacity-60">(note: "Aerial")</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="ogpay" checked={pay === "cash"} onChange={() => setPay("cash")} />
+                Cash at the studio
+              </label>
+            </div>
             <input required placeholder="Your name" value={name} onChange={e => setName(e.target.value)} className="border border-black/20 rounded-lg px-3 py-2" />
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="border border-black/20 rounded-lg px-3 py-2" />
             {msg && <p className="text-sm text-red-700">{msg}</p>}
             <button className="btn btn--accent" disabled={state === "busy" || !slot}>{state === "busy" ? "Booking…" : "Book Open Gym"}</button>
           </form>
         )}
+      </div>
+    </div>
+  );
+}
+
+function OgRoster({ date, time }: { date: string; time: string }) {
+  const [rows, setRows] = useState<any[] | null>(null);
+  const [nm, setNm] = useState(""); const [em, setEm] = useState("");
+  const [pm, setPm] = useState<"venmo" | "cash">("cash");
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const load = () => fetch(`/api/admin/roster?kind=opengym&date=${date}&time=${time}`)
+    .then(r => r.json()).then(j => setRows(j.bookings || []));
+  useEffect(() => { setRows(null); load(); }, [date, time]);
+  async function post(body: any) {
+    setBusy(true); setErr("");
+    const r = await fetch("/api/admin/roster", { method: "POST",
+      headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) setErr(j.error || "Failed");
+    else { setNm(""); setEm(""); }
+    await load(); setBusy(false);
+  }
+  return (
+    <div className="border border-ea-gold/60 bg-ea-gold/10 rounded-lg p-3 text-sm">
+      <p className="font-semibold mb-2">Roster (admin) — {fmt(time)}</p>
+      {rows === null ? <p className="opacity-60">Loading…</p> : rows.length === 0 ?
+        <p className="opacity-60 mb-2">No bookings for this slot.</p> :
+        <div className="mb-2 flex flex-col gap-1">
+          {rows.map(r => (
+            <div key={r.id} className="flex items-center gap-2">
+              <span className="flex-1 truncate">{r.name} <span className="opacity-60">({r.email})</span></span>
+              <span className="text-xs opacity-60">{r.room}{r.pay_method ? ` · ${r.pay_method}` : ""}</span>
+              <button type="button" className="text-red-700 text-xs underline" disabled={busy}
+                onClick={() => post({ op: "og_remove", id: r.id })}>remove</button>
+            </div>))}
+        </div>}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          <input placeholder="Name" value={nm} onChange={e => setNm(e.target.value)}
+            className="border border-black/20 rounded px-2 py-1 flex-1 min-w-0" />
+          <input placeholder="Email" value={em} onChange={e => setEm(e.target.value)}
+            className="border border-black/20 rounded px-2 py-1 flex-1 min-w-0" />
+        </div>
+        <div className="flex gap-1.5 items-center">
+          <select value={pm} onChange={e => setPm(e.target.value as any)} className="border border-black/20 rounded px-2 py-1">
+            <option value="cash">cash</option><option value="venmo">venmo</option>
+          </select>
+          <button type="button" className="btn text-xs !px-3 !py-1" disabled={busy || !nm || !em}
+            onClick={() => post({ op: "og_add", date, time, name: nm, email: em, pay_method: pm })}>Add booking</button>
+        </div>
+        {err && <p className="text-red-700 text-xs">{err}</p>}
       </div>
     </div>
   );

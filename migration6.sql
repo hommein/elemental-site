@@ -1,7 +1,1 @@
-CREATE TABLE IF NOT EXISTS email_templates(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  subject TEXT NOT NULL DEFAULT '',
-  html TEXT NOT NULL DEFAULT '',
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+ALTER TABLE opengym ADD COLUMN pay_method TEXT;
