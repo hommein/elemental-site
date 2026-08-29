@@ -112,6 +112,14 @@ const VENMO = "https://account.venmo.com/u/Katelyn-Carano";
 
 /* ---- tiny dependency-free SVG charts ---- */
 const CH = { gold: "#f0bd65", brown: "#9f664a", tan: "#bd8f71", olive: "#7f6436", cream: "#e9cbb1", sky: "#7ab8d9", green: "#7fb069" };
+const GUESTS = new Set(["Bethany", "Mel", "Daniel", "Kelsey"]);
+const groupOf = (c: { title: string; category?: string; instructor?: string | null }) =>
+  c.category === "selah" ? "selah"
+  : c.title === "Community Jam" ? "jam" : c.category === "flex" ? "flex"
+  : c.title === "Belly Dance" || (c.instructor && GUESTS.has(c.instructor)) ? "guest" : "aerial";
+const GCOLOR: Record<string, string> = { aerial: CH.gold, flex: CH.tan, guest: CH.olive, selah: "#c9c9c9", jam: "#e8b3cf" };
+const GLABEL: Record<string, string> = { aerial: "Aerial", flex: "Flex", guest: "Guest Instructors", selah: "Selah Dance", jam: "Community Jam" };
+const GORDER = ["aerial", "flex", "guest", "jam", "selah"];
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return <div className="bg-white border border-ea-accent/40 rounded-lg p-3">
     <div className="text-xs font-semibold text-ea-espresso/70 mb-2">{title}</div>{children}</div>;
@@ -141,13 +149,13 @@ function StackBars({ rows, series, labels, money }: {
     </div>}
   </div>);
 }
-function HBars({ items, color }: { items: { label: string; n: number }[]; color: string }) {
+function HBars({ items, color }: { items: { label: string; n: number; color?: string }[]; color: string }) {
   const max = Math.max(1, ...items.map(i => i.n));
   return <div className="space-y-1">
     {items.map(it => <div key={it.label} className="flex items-center gap-2 text-xs">
       <span className="w-32 truncate text-right text-ea-espresso/70">{it.label}</span>
       <div className="flex-1 bg-ea-cream/30 rounded h-4 relative">
-        <div className="h-4 rounded" style={{ width: (it.n / max) * 100 + "%", background: color }} />
+        <div className="h-4 rounded" style={{ width: (it.n / max) * 100 + "%", background: it.color || color }} />
         <span className="absolute inset-y-0 left-1.5 flex items-center text-[10px] font-semibold text-ea-espresso/80">{it.n}</span>
       </div>
     </div>)}
@@ -182,7 +190,6 @@ function TrendsTab() {
   const wk = st.weeks as any[];
   const wl = wk.map((w: any, i: number) => (i % 2 === wk.length % 2) ? "" :
     new Date(w.week + "T00:00:00Z").toLocaleString("en-US", { month: "numeric", day: "numeric", timeZone: "UTC" }));
-  const catColor: Record<string, string> = { aerial: CH.gold, flex: CH.cream, flow: CH.tan, dance: CH.brown, community: CH.sky, selah: "#cccccc" };
   return (<div>
     <p className="text-sm text-ea-espresso/60 mb-3">Rolling 90-day view of studio activity (weekly charts cover the last 12 weeks).</p>
     <div className="grid gap-3 md:grid-cols-2">
@@ -198,7 +205,7 @@ function TrendsTab() {
           series={[{ name: "new accounts", color: CH.sky }, { name: "packs sold", color: CH.olive }]} />
       </ChartCard>
       <ChartCard title="Most popular classes (90 days)">
-        <HBars items={(st.topClasses || []).map((t: any) => ({ label: t.title, n: t.n }))} color={CH.gold} />
+        <HBars items={(st.topClasses || []).map((t: any) => ({ label: t.title, n: t.n, color: GCOLOR[t.group] }))} color={CH.gold} />
       </ChartCard>
       <ChartCard title="Busiest days (90 days)">
         <StackBars rows={(st.byDay || []).map((d: any) => [d.cls, d.og])} labels={DAYS}
@@ -212,9 +219,9 @@ function TrendsTab() {
             { label: "cash", n: st.payMix?.cash || 0, color: CH.green },
             { label: "unset", n: st.payMix?.unset || 0, color: "#d8d0c8" }]} />
         </ChartCard>
-        <ChartCard title="Signups by category (90 days)">
-          <Donut parts={Object.entries(st.byCat || {}).map(([label, n]: any) =>
-            ({ label, n, color: catColor[label] || "#d8d0c8" }))} />
+        <ChartCard title="Signups by group (90 days)">
+          <Donut parts={GORDER.filter(k => st.byCat?.[k]).map(k =>
+            ({ label: GLABEL[k], n: st.byCat[k], color: GCOLOR[k] }))} />
         </ChartCard>
       </div>
     </div>
@@ -297,12 +304,17 @@ function TallyTab() {
             {stat("$" + paid, "payments logged")}
             {stat(packsSold, "packs sold")}
           </div>
-          <div className="grid gap-3 md:grid-cols-3 mb-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 mb-4">
             <ChartCard title={`Most popular classes (${label})`}>
-              <HBars items={(() => { const m: Record<string, number> = {};
-                cls.forEach((c: any) => { m[c.title] = (m[c.title] || 0) + 1; });
-                return Object.entries(m).map(([label, n]) => ({ label, n }))
+              <HBars items={(() => { const m: Record<string, number> = {}, g: Record<string, string> = {};
+                cls.forEach((c: any) => { m[c.title] = (m[c.title] || 0) + 1; g[c.title] = groupOf(c); });
+                return Object.entries(m).map(([label, n]) => ({ label, n, color: GCOLOR[g[label]] }))
                   .sort((a, b) => b.n - a.n).slice(0, 8); })()} color={CH.gold} />
+            </ChartCard>
+            <ChartCard title={`Signups by group (${label})`}>
+              <Donut parts={(() => { const m: Record<string, number> = {};
+                cls.forEach((c: any) => { const k = groupOf(c); m[k] = (m[k] || 0) + 1; });
+                return GORDER.filter(k => m[k]).map(k => ({ label: GLABEL[k], n: m[k], color: GCOLOR[k] })); })()} />
             </ChartCard>
             <ChartCard title={`Busiest days (${label})`}>
               <StackBars labels={DAYS} series={[{ name: "classes", color: CH.gold }, { name: "open gym", color: CH.tan }]}

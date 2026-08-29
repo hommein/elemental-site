@@ -21,7 +21,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
 
   const D = env.DB;
   const su = (await D.prepare(
-    `SELECT s.date, s.pay_method, c.title, c.category, c.day FROM signups s JOIN classes c ON c.id=s.class_id
+    `SELECT s.date, s.pay_method, c.title, c.category, c.instructor, c.day FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2`).bind(lo, e0).all()).results as any[];
   const og = (await D.prepare("SELECT date FROM opengym WHERE date >= ?1 AND date < ?2").bind(lo, e0).all()).results as any[];
   const pay = (await D.prepare("SELECT date, amount FROM payments WHERE date >= ?1 AND date < ?2").bind(s0, e0).all()).results as any[];
@@ -39,13 +39,18 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   });
   const bump = (d: string, k: string, v = 1) => { const i = wkOf(d); if (i >= 0) (weeks[i] as any)[k] += v; };
 
-  const topMap: Record<string, number> = {}, catMap: Record<string, number> = {},
+  const GUESTS = new Set(["Bethany", "Mel", "Daniel", "Kelsey"]);
+  const groupOf = (c: any) => c.category === "selah" ? "selah"
+    : c.title === "Community Jam" ? "jam" : c.category === "flex" ? "flex"
+    : c.title === "Belly Dance" || (c.instructor && GUESTS.has(c.instructor)) ? "guest" : "aerial";
+  const topMap: Record<string, number> = {}, topGrp: Record<string, string> = {}, catMap: Record<string, number> = {},
     payMix: Record<string, number> = {}, byDay = Array.from({ length: 7 }, () => ({ cls: 0, og: 0 }));
   for (const s of su) {
     bump(s.date, "signups");
     if (s.date >= s90) {
       topMap[s.title] = (topMap[s.title] || 0) + 1;
-      catMap[s.category || "other"] = (catMap[s.category || "other"] || 0) + 1;
+      topGrp[s.title] = groupOf(s);
+      catMap[groupOf(s)] = (catMap[groupOf(s)] || 0) + 1;
       payMix[s.pay_method || "unset"] = (payMix[s.pay_method || "unset"] || 0) + 1;
       byDay[new Date(s.date + "T00:00:00Z").getUTCDay()].cls++;
     }
@@ -58,7 +63,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   for (const x of usr) bump(x.d, "new_users");
   for (const x of pk) bump(x.d, "packs");
 
-  const topClasses = Object.entries(topMap).map(([title, n]) => ({ title, n }))
+  const topClasses = Object.entries(topMap).map(([title, n]) => ({ title, n, group: topGrp[title] }))
     .sort((a, b) => b.n - a.n).slice(0, 8);
   return json({ start: s0, weeks, topClasses, byCat: catMap, payMix, byDay });
 };

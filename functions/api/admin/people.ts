@@ -20,7 +20,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
 
   const users = (await env.DB.prepare("SELECT id,name,email,phone,created_at FROM users ORDER BY name").all()).results as any[];
   const su = (await env.DB.prepare(
-    `SELECT s.email, s.date, s.pay_method, c.title, c.time FROM signups s JOIN classes c ON c.id=s.class_id
+    `SELECT s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2 ORDER BY s.date, c.time`).bind(week, weekEnd).all()).results as any[];
   const og = (await env.DB.prepare(
     "SELECT email, date, time FROM opengym WHERE date >= ?1 AND date < ?2").bind(week, weekEnd).all()).results as any[];
@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   const byEmail: Record<string, any> = {};
   for (const u of users) byEmail[u.email.toLowerCase()] = { ...u, classes: [], opengym: [], packs: [], payments: [] };
   const guest = (e: string) => byEmail[e] || (byEmail[e] = { id: null, name: "(no account)", email: e, classes: [], opengym: [], packs: [], payments: [] });
-  for (const s of su) guest(s.email.toLowerCase()).classes.push({ date: s.date, title: s.title, time: s.time, pay_method: s.pay_method });
+  for (const s of su) guest(s.email.toLowerCase()).classes.push({ date: s.date, title: s.title, time: s.time, pay_method: s.pay_method, category: s.category, instructor: s.instructor });
   for (const o of og) guest(o.email.toLowerCase()).opengym.push({ date: o.date, time: o.time });
   for (const p of packs) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].packs.push(p); }
   for (const p of pays) { const u = users.find(u => u.id === p.user_id); if (u) byEmail[u.email.toLowerCase()].payments.push(p); }
