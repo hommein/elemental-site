@@ -200,6 +200,14 @@ function TrendsTab() {
       <ChartCard title="Payments logged per week ($)">
         <StackBars rows={wk.map(w => [w.revenue])} labels={wl} money series={[{ name: "$", color: CH.green }]} />
       </ChartCard>
+      <ChartCard title="Open gym — visits per week">
+        <StackBars rows={wk.map(w => [w.opengym])} labels={wl} series={[{ name: "open gym & jam", color: GCOLOR.jam }]} />
+      </ChartCard>
+      <ChartCard title="Open gym — popular hours (90 days)">
+        <StackBars labels={Array.from({ length: 13 }, (_, i) => { const h = i + 8; return `${((h + 11) % 12) + 1}${h >= 12 ? "p" : "a"}`; })}
+          series={[{ name: "bookings", color: GCOLOR.jam }]}
+          rows={Array.from({ length: 13 }, (_, i) => [st.ogHour?.[String(i + 8).padStart(2, "0") + ":00"] || 0])} />
+      </ChartCard>
       <ChartCard title="Most popular classes (90 days)">
         <HBars items={(st.topClasses || []).map((t: any) => ({ label: t.title, n: t.n, color: GCOLOR[t.group] }))} color={CH.gold} />
       </ChartCard>

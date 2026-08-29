@@ -23,7 +23,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
   const su = (await D.prepare(
     `SELECT s.date, s.pay_method, c.title, c.category, c.instructor, c.day FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2`).bind(lo, e0).all()).results as any[];
-  const og = (await D.prepare("SELECT date FROM opengym WHERE date >= ?1 AND date < ?2").bind(lo, e0).all()).results as any[];
+  const og = (await D.prepare("SELECT date, time FROM opengym WHERE date >= ?1 AND date < ?2").bind(lo, e0).all()).results as any[];
   const pay = (await D.prepare("SELECT date, amount FROM payments WHERE date >= ?1 AND date < ?2").bind(s0, e0).all()).results as any[];
   const usr = (await D.prepare("SELECT substr(created_at,1,10) AS d FROM users WHERE created_at >= ?1").bind(s0).all()).results as any[];
   const pk = (await D.prepare("SELECT purchased_at AS d FROM classpacks WHERE purchased_at >= ?1").bind(s0).all()).results as any[];
@@ -60,9 +60,13 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
       byDay[new Date(s.date + "T00:00:00Z").getUTCDay()].cls++;
     }
   }
+  const ogHour: Record<string, number> = {};
   for (const o of og) {
     bump(o.date, "opengym");
-    if (o.date >= s90) byDay[new Date(o.date + "T00:00:00Z").getUTCDay()].og++;
+    if (o.date >= s90) {
+      byDay[new Date(o.date + "T00:00:00Z").getUTCDay()].og++;
+      ogHour[o.time] = (ogHour[o.time] || 0) + 1;
+    }
   }
   for (const p of pay) bump(p.date, "revenue", p.amount || 0);
   for (const x of usr) bump(x.d, "new_users");
@@ -70,5 +74,5 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
 
   const topClasses = Object.entries(topMap).map(([title, n]) => ({ title, n, group: topGrp[title] }))
     .sort((a, b) => b.n - a.n).slice(0, 8);
-  return json({ start: s0, weeks, topClasses, byCat: catMap, payMix, byDay });
+  return json({ start: s0, weeks, topClasses, byCat: catMap, payMix, byDay, ogHour });
 };
