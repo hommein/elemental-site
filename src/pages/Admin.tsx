@@ -244,6 +244,13 @@ function TallyTab() {
   };
   const load = () => { const r = range(); return fetch(`/api/admin/people?start=${r.start}${r.end ? "&end=" + r.end : ""}`).then(r => r.json()).then(setData); };
   useEffect(() => { load(); }, [week, month, scale]);
+  const [wk5, setWk5] = useState<any>(null);
+  const wk5start = (() => { const d = curSun(); d.setUTCDate(d.getUTCDate() - 28); return fmtWk(d); })();
+  useEffect(() => {
+    if (scale !== "month" || wk5) return;
+    const e = curSun(); e.setUTCDate(e.getUTCDate() + 7);
+    fetch(`/api/admin/people?start=${wk5start}&end=${fmtWk(e)}`).then(r => r.json()).then(setWk5);
+  }, [scale]);
   const shift = (n: number) => {
     if (scale === "week") { const d = new Date(week + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 7 * n); setWeek(fmtWk(d)); }
     else { const [y, m] = month.split("-").map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); setMonth(d.toISOString().slice(0, 7)); }
@@ -316,11 +323,25 @@ function TallyTab() {
                 cls.forEach((c: any) => { const k = groupOf(c); m[k] = (m[k] || 0) + 1; });
                 return GORDER.filter(k => m[k]).map(k => ({ label: GLABEL[k], n: m[k], color: GCOLOR[k] })); })()} />
             </ChartCard>
-            <ChartCard title={`Busiest days (${label})`}>
-              <StackBars labels={DAYS} series={[{ name: "classes", color: CH.gold }, { name: "open gym", color: CH.tan }]}
-                rows={DAYS.map((_, i) => [
-                  cls.filter((c: any) => new Date(c.date + "T00:00:00Z").getUTCDay() === i).length,
-                  og.filter((o: any) => new Date(o.date + "T00:00:00Z").getUTCDay() === i).length])} />
+            <ChartCard title={scale === "week" ? "Busiest days (this week)" : "Attendance by week (last 5 weeks)"}>
+              {(() => {
+                const series = GORDER.map(k => ({ name: GLABEL[k], color: GCOLOR[k] }));
+                if (scale === "week")
+                  return <StackBars labels={DAYS} series={series}
+                    rows={DAYS.map((_, i) => GORDER.map(k =>
+                      cls.filter((c: any) => new Date(c.date + "T00:00:00Z").getUTCDay() === i && groupOf(c) === k).length))} />;
+                if (!wk5) return <p className="text-sm opacity-50">Loading…</p>;
+                const wcls = (wk5.people || []).flatMap((pp: any) => pp.classes);
+                const s0 = new Date(wk5start + "T00:00:00Z").getTime();
+                const wkIdx = (d: string) => Math.floor((new Date(d + "T00:00:00Z").getTime() - s0) / 6048e5);
+                const labs = Array.from({ length: 5 }, (_, i) => {
+                  const d = new Date(s0 + i * 6048e5);
+                  return i === 4 ? "now" : `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+                });
+                return <StackBars labels={labs} series={series}
+                  rows={labs.map((_, i) => GORDER.map(k =>
+                    wcls.filter((c: any) => wkIdx(c.date) === i && groupOf(c) === k).length))} />;
+              })()}
             </ChartCard>
             <ChartCard title={`How classes were paid (${label})`}>
               <Donut parts={[
