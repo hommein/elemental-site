@@ -369,7 +369,6 @@ function Tile({ c, onPick, abs, admin }: { c: Cls; onPick: () => void; abs?: boo
   }
   const full = c.taken >= c.capacity;
   const ext = c.pricing === "external" && c.category === "selah";
-  const guestExt = c.pricing === "external" && c.category !== "selah";
   const past = `${c.date} ${c.time}` <= ptNow();
   const cls = `text-left border rounded-lg overflow-hidden transition block
     ${abs ? "h-full w-full px-1.5 py-1 text-xs leading-tight" : "px-2.5 py-2 text-sm"}
@@ -382,8 +381,8 @@ function Tile({ c, onPick, abs, admin }: { c: Cls; onPick: () => void; abs?: boo
       <div className={`text-ea-espresso/70 truncate ${abs ? "text-[11px]" : "text-xs"}`}>
         {fmt(c.time)}{c.instructor ? ` · ${c.instructor}` : ""}{abs ? "" : ` · ${c.room}`}
       </div>
-      {(ext || guestExt)
-        ? <div className={`italic ${abs ? "text-[11px]" : "text-xs mt-0.5"}`}>{ext ? "via Selah Dance ↗" : `$${c.price ?? ""} · pay instructor`}</div>
+      {ext
+        ? <div className={`italic ${abs ? "text-[11px]" : "text-xs mt-0.5"}`}>via Selah Dance ↗</div>
         : <div className={`${abs ? "text-[11px]" : "text-xs mt-0.5"} ${full ? "text-red-700" : "text-ea-olive"}`}>
             {full ? "Full" : `${c.capacity - c.taken}/${c.capacity} open`}
           </div>}
@@ -449,6 +448,38 @@ function AdminRoster({ cls, onChanged }: { cls: Cls; onChanged: () => void }) {
   );
 }
 
+
+function ExtSignup({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) => void }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "busy" | "done">("idle");
+  const [msg, setMsg] = useState("");
+  useEffect(() => { me().then(u => { if (u) { setName(n => n || u.name); setEmail(e => e || u.email); } }); }, []);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault(); setState("busy"); setMsg("");
+    const r = await fetch("/api/signup", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ class_id: cls.id, date: cls.date, name, email, pay_method: "external" }) });
+    const j = await r.json();
+    if (r.ok) { setState("done"); setMsg("You're on the list! Remember to pay the instructor to confirm your spot."); }
+    else { setState("idle"); setMsg(j.error || "Something went wrong"); }
+  }
+  if (state === "done") return <>
+    <p className="text-ea-olive font-medium mb-3">{msg}</p>
+    <button className="btn w-full" onClick={() => onClose(true)}>Close</button>
+  </>;
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-3">
+      <input required placeholder="Your name" value={name} onChange={e => setName(e.target.value)}
+        className="border border-black/20 rounded-lg px-3 py-2" />
+      <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
+        className="border border-black/20 rounded-lg px-3 py-2" />
+      {msg && <p className="text-sm text-red-700">{msg}</p>}
+      <button className="btn btn--accent" disabled={state === "busy"}>
+        {state === "busy" ? "Reserving…" : `Reserve seat (${cls.capacity - cls.taken} open)`}
+      </button>
+    </form>
+  );
+}
 function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) => void }) {
   const isJam = cls.title === "Community Jam";
   const isExt = cls.pricing === "external" && cls.category !== "selah";
@@ -461,13 +492,13 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
           {DAYS[cls.day]} {prettyDate(cls.date)} at {fmt(cls.time)}{cls.instructor ? ` with ${cls.instructor}` : ""}
         </p>
         {cls.price != null && <p className="font-medium mb-2">${cls.price} per class</p>}
-        <p className="text-sm mb-4 whitespace-pre-wrap">
-          This guest class is booked and paid directly with the instructor{cls.instructor ? ` (${cls.instructor})` : ""}.
+        <p className="text-sm mb-3 whitespace-pre-wrap">
+          Reserve your seat here — payment goes directly to the instructor{cls.instructor ? ` (${cls.instructor})` : ""}.
           {cls.pay_note ? `
 
 ${cls.pay_note}` : ""}
         </p>
-        <button className="btn w-full" onClick={() => onClose(false)}>Close</button>
+        <ExtSignup cls={cls} onClose={onClose} />
       </div>
     </div>
   );

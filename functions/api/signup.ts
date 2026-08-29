@@ -2,7 +2,7 @@ import { ptEpoch } from "./bookings";
 import { getUser } from "../_lib";
 interface Env { DB: D1Database; SESSION_SECRET: string }
 
-const METHODS = ["pack", "venmo", "cash"];
+const METHODS = ["pack", "venmo", "cash", "external"];
 
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let body: any;
@@ -16,7 +16,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   const cls: any = await env.DB.prepare("SELECT * FROM classes WHERE id=? AND active=1").bind(class_id).first();
   if (!cls) return err("Class not found", 404);
-  if (cls.pricing === "external") return err(cls.category === "selah" ? "This class is booked through Selah Dance" : `This class is booked directly with the instructor — ${cls.pay_note || "see the class details"}`, 400);
+  if (cls.category === "selah") return err("This class is booked through Selah Dance", 400);
+  const guestExt = cls.pricing === "external";
+  if (guestExt && pay_method !== "external") return err("This class is paid directly to the instructor", 400);
+  if (!guestExt && pay_method === "external") return err("Pick pack, Venmo, or cash", 400);
   const dow = new Date(date + "T00:00:00Z").getUTCDay();
   if (dow !== cls.day) return err("Date does not match this class's weekday", 400);
 
