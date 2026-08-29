@@ -174,19 +174,18 @@ function Donut({ parts }: { parts: { label: string; n: number; color: string }[]
     </div>
   </div>;
 }
-function TrendsSection() {
+function TrendsTab() {
   const [st, setSt] = useState<any>(null);
-  const [open, setOpen] = useState(true);
   useEffect(() => { fetch("/api/admin/stats?weeks=12").then(r => r.json()).then(setSt); }, []);
-  if (!st?.weeks) return null;
+  if (!st) return <p>Loading…</p>;
+  if (!st.weeks) return <p>Admins only.</p>;
   const wk = st.weeks as any[];
   const wl = wk.map((w: any, i: number) => (i % 2 === wk.length % 2) ? "" :
     new Date(w.week + "T00:00:00Z").toLocaleString("en-US", { month: "numeric", day: "numeric", timeZone: "UTC" }));
   const catColor: Record<string, string> = { aerial: CH.gold, flex: CH.cream, flow: CH.tan, dance: CH.brown, community: CH.sky, selah: "#cccccc" };
-  return (<div className="mb-5">
-    <button className="text-sm font-semibold text-ea-espresso/70 mb-2" onClick={() => setOpen(o => !o)}>
-      📈 Studio trends (last 12 weeks) {open ? "▾" : "▸"}</button>
-    {open && <div className="grid gap-3 md:grid-cols-2">
+  return (<div>
+    <p className="text-sm text-ea-espresso/60 mb-3">Rolling 90-day view of studio activity (weekly charts cover the last 12 weeks).</p>
+    <div className="grid gap-3 md:grid-cols-2">
       <ChartCard title="Attendance per week">
         <StackBars rows={wk.map(w => [w.signups, w.opengym])} labels={wl}
           series={[{ name: "class signups", color: CH.gold }, { name: "open gym", color: CH.tan }]} />
@@ -218,7 +217,7 @@ function TrendsSection() {
             ({ label, n, color: catColor[label] || "#d8d0c8" }))} />
         </ChartCard>
       </div>
-    </div>}
+    </div>
   </div>);
 }
 
@@ -265,7 +264,6 @@ function TallyTab() {
           : new Date(month + "-15T00:00:00Z").toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</strong>
         <button className="btn" onClick={() => shift(1)}>›</button>
       </div>
-      <TrendsSection />
       {(() => {
         const ppl = data.people as any[];
         const r = range();
@@ -281,12 +279,13 @@ function TallyTab() {
         const paysIn = ppl.flatMap(p => p.payments || []).filter((x: any) => inR(x.date));
         const paid = paysIn.reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const packsSold = ppl.flatMap(p => p.packs || []).filter((k: any) => inR((k.purchased_at || "").slice(0, 10))).length;
+        const label = scale === "week" ? "this week" : "this month";
         const stat = (n: any, l: string) => (
           <div className="bg-white border border-ea-accent/40 rounded p-2 text-center min-w-[5.5rem]">
             <div className="text-xl font-semibold leading-tight">{n}</div>
             <div className="text-[11px] text-ea-espresso/60 leading-tight">{l}</div>
           </div>);
-        return (
+        return (<>
           <div className="flex flex-wrap gap-2 mb-4">
             {stat(active.length, "active students")}
             {stat(cls.length, "class signups")}
@@ -298,6 +297,28 @@ function TallyTab() {
             {stat("$" + paid, "payments logged")}
             {stat(packsSold, "packs sold")}
           </div>
+          <div className="grid gap-3 md:grid-cols-3 mb-4">
+            <ChartCard title={`Most popular classes (${label})`}>
+              <HBars items={(() => { const m: Record<string, number> = {};
+                cls.forEach((c: any) => { m[c.title] = (m[c.title] || 0) + 1; });
+                return Object.entries(m).map(([label, n]) => ({ label, n }))
+                  .sort((a, b) => b.n - a.n).slice(0, 8); })()} color={CH.gold} />
+            </ChartCard>
+            <ChartCard title={`Busiest days (${label})`}>
+              <StackBars labels={DAYS} series={[{ name: "classes", color: CH.gold }, { name: "open gym", color: CH.tan }]}
+                rows={DAYS.map((_, i) => [
+                  cls.filter((c: any) => new Date(c.date + "T00:00:00Z").getUTCDay() === i).length,
+                  og.filter((o: any) => new Date(o.date + "T00:00:00Z").getUTCDay() === i).length])} />
+            </ChartCard>
+            <ChartCard title={`How classes were paid (${label})`}>
+              <Donut parts={[
+                { label: "pack", n: by("pack"), color: CH.gold },
+                { label: "venmo", n: by("venmo"), color: CH.sky },
+                { label: "cash", n: by("cash"), color: CH.green },
+                { label: "unset", n: cls.length - by("pack") - by("venmo") - by("cash"), color: "#d8d0c8" }]} />
+            </ChartCard>
+          </div>
+        </>
         );
       })()}
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -550,12 +571,12 @@ function EmailTab() {
 }
 
 export default function Admin() {
-  const [tab, setTab] = useState<"schedule" | "tally" | "email">("tally");
+  const [tab, setTab] = useState<"schedule" | "tally" | "email" | "trends">("tally");
   return (
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
       <div className="flex gap-2 mb-6">
-        {([["tally", "Members & Payments"], ["schedule", "Schedule Editor"], ["email", "Email"]] as const).map(([k, label]) => (
+        {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["email", "Email"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={"px-6 py-2.5 rounded-full font-semibold tracking-wide transition-colors " +
               (tab === k ? "bg-ea-espresso text-ea-paper shadow" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
@@ -563,7 +584,7 @@ export default function Admin() {
           </button>
         ))}
       </div>
-      {tab === "tally" ? <TallyTab /> : tab === "email" ? <EmailTab /> : <ScheduleTab />}
+      {tab === "tally" ? <TallyTab /> : tab === "trends" ? <TrendsTab /> : tab === "email" ? <EmailTab /> : <ScheduleTab />}
     </section>
   );
 }
