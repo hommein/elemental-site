@@ -7,3 +7,6 @@ UPDATE classes SET pricing='donation', price=15 WHERE id=22;             -- Bell
 UPDATE classes SET pricing='dropin', price=30 WHERE id=27;               -- Mel Pole: pack-eligible
 UPDATE classes SET price=30 WHERE pricing='dropin' AND category='aerial';
 UPDATE classes SET price=10 WHERE id=39;                                 -- Community Jam $10
+
+-- Community Jam is paid, $10 (lezerd)
+UPDATE classes SET pricing='standard', price=10 WHERE id=39;
