@@ -193,7 +193,7 @@ function HBars({ items, color }: { items: { label: string; n: number; color?: st
   const max = Math.max(1, ...items.map(i => i.n));
   return <div className="space-y-1">
     {items.map(it => <div key={it.label} className="flex items-center gap-2 text-xs">
-      <span className="w-32 truncate text-right text-ea-espresso/70">{it.label}</span>
+      <span className="w-20 sm:w-32 truncate text-right text-ea-espresso/70">{it.label}</span>
       <div className="flex-1 bg-ea-cream/30 rounded h-4 relative">
         <div className="h-4 rounded" style={{ width: (it.n / max) * 100 + "%", background: it.color || color }} />
         <span className="absolute inset-y-0 left-1.5 flex items-center text-[10px] font-semibold text-ea-espresso/80">{it.n}</span>
@@ -363,7 +363,7 @@ function TallyTab() {
   if (!data.people) return <p>Admins only.</p>;
   return (
     <div>
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <button className="btn" onClick={() => shift(-1)}>‹</button>
         <span className="inline-flex rounded overflow-hidden border border-black/20 mr-2">
           {(["week", "month"] as const).map(sc => (
@@ -533,7 +533,7 @@ function TallyTab() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 border-b border-ea-accent/20">
               <strong className="text-lg">{p.name || p.email}</strong>
               <span className="text-sm opacity-60">{p.email}{p.phone ? " · " + p.phone : ""}</span>
-              <span className="ml-auto flex items-center gap-2">
+              <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
                 <span className="text-sm font-semibold">{taken} visit{taken === 1 ? "" : "s"} this {scale}</span>
                 <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
                   {pack ? `pack ${pack.remaining}` : "no pack"}
@@ -875,10 +875,10 @@ export default function Admin() {
   return (
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["email", "Email"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
-            className={"px-6 py-2.5 rounded-full font-semibold tracking-wide transition-colors " +
+            className={"px-4 py-2 sm:px-6 sm:py-2.5 text-sm sm:text-base rounded-full font-semibold tracking-wide transition-colors " +
               (tab === k ? "bg-ea-espresso text-ea-paper shadow" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
             {label}
           </button>
