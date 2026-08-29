@@ -466,7 +466,7 @@ function TallyTab() {
         );
       })()}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <input className="border border-ea-accent/50 rounded px-2.5 py-1.5 text-sm w-56" placeholder="🔍 Search name or email…"
+        <input className="border border-ea-accent/50 rounded px-2.5 py-1.5 text-sm w-full sm:w-56" placeholder="🔍 Search name or email…"
           value={q} onChange={e => setQ(e.target.value)} />
         <label className="text-xs text-ea-espresso/60 ml-1">sort by</label>
         <select className="border border-ea-accent/50 rounded px-2 py-1.5 text-sm bg-white" value={sort} onChange={e => setSort(e.target.value)}>
@@ -529,11 +529,11 @@ function TallyTab() {
           <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " +
             (m === "pack" ? "bg-ea-gold/40 text-ea-olive" : m === "venmo" ? "bg-sky-100 text-sky-800" : m === "external" ? "bg-ea-olive/15 text-ea-olive" : "bg-emerald-100 text-emerald-800")}>{m === "external" ? "pays instructor" : m}</span> : null;
         return (
-          <div key={p.email} className="border border-ea-accent/40 rounded-lg p-4 mb-3 bg-white">
+          <div key={p.email} className="border border-ea-accent/40 rounded-lg p-3 sm:p-4 mb-3 bg-white">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 border-b border-ea-accent/20">
               <strong className="text-lg">{p.name || p.email}</strong>
               <span className="text-sm opacity-60">{p.email}{p.phone ? " · " + p.phone : ""}</span>
-              <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              <span className="w-full sm:w-auto sm:ml-auto flex flex-wrap items-center justify-start sm:justify-end gap-2">
                 <span className="text-sm font-semibold">{taken} visit{taken === 1 ? "" : "s"} this {scale}</span>
                 <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
                   {pack ? `pack ${pack.remaining}` : "no pack"}
@@ -582,18 +582,18 @@ function TallyTab() {
                 </div>
               );
             })()}
-            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 mt-2">
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4 sm:gap-y-2 mt-2">
               <div>
                 <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Activity</div>
                 {taken === 0 && <div className="text-sm opacity-50">No visits this {scale}.</div>}
                 {p.classes.map((c: any, i: number) => (
-                  <div key={"c" + i} className="text-sm flex items-baseline gap-2">
-                    <span className="opacity-60 w-24 shrink-0">{fmtD(c.date)}</span>
+                  <div key={"c" + i} className="text-sm flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span className="opacity-60 w-20 sm:w-24 shrink-0">{fmtD(c.date)}</span>
                     <span>{fmtT(c.time)} · {c.title}</span>{payChip(c.pay_method)}{payBtn(c, "class")}
                   </div>))}
                 {p.opengym.map((o: any, i: number) => (
-                  <div key={"o" + i} className="text-sm flex items-baseline gap-2">
-                    <span className="opacity-60 w-24 shrink-0">{fmtD(o.date)}</span>
+                  <div key={"o" + i} className="text-sm flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span className="opacity-60 w-20 sm:w-24 shrink-0">{fmtD(o.date)}</span>
                     <span>{fmtT(o.time)} · {o.title || "Open Gym"} ($10)</span>{payChip(o.pay_method)}{payBtn(o, o._kind || "opengym")}
                   </div>))}
               </div>
@@ -609,8 +609,8 @@ function TallyTab() {
                 {p.payments.length > 0 && <div className="mt-2">
                   <div className="text-[11px] uppercase tracking-wide opacity-50 mb-0.5">Payments logged</div>
                   {p.payments.map((pm: any) => (
-                    <div key={pm.id} className="text-sm flex items-center gap-2 py-0.5 border-b border-ea-accent/15 last:border-0">
-                      <span className="opacity-60 w-24 shrink-0">{new Date(pm.date + "T00:00:00Z").toLocaleString("en-US", { month: "short", day: "numeric", year: "2-digit", timeZone: "UTC" })}</span>
+                    <div key={pm.id} className="text-sm flex flex-wrap items-center gap-x-2 gap-y-0.5 py-0.5 border-b border-ea-accent/15 last:border-0">
+                      <span className="opacity-60 w-20 sm:w-24 shrink-0">{new Date(pm.date + "T00:00:00Z").toLocaleString("en-US", { month: "short", day: "numeric", year: "2-digit", timeZone: "UTC" })}</span>
                       <b className="w-14">${pm.amount}</b>
                       <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " + (pm.method === "venmo" ? "bg-sky-100 text-sky-800" : "bg-emerald-100 text-emerald-800")}>{pm.method}</span>
                       {pm.unallocated > 0 && <span className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-ea-gold/40 text-ea-olive" title="Not yet applied to a pack or booking">${pm.unallocated.toFixed(2)} unallocated</span>}
