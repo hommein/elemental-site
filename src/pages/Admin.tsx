@@ -282,6 +282,18 @@ function TallyTab() {
   const [pend, setPend] = useState<Record<number, Pend>>({});
   const setP = (id: number, patch: any) => setPend(x => ({ ...x, [id]: { ...{ amount: "", method: "venmo" }, ...x[id], ...patch } }));
   const pendIds = Object.keys(pend).filter(k => parseFloat(pend[+k]?.amount) > 0).map(Number);
+  const [sugg, setSugg] = useState<Record<number, { items: PlanItem[] } | null>>({});
+  useEffect(() => { (async () => {
+    if (!data?.people) return;
+    const out: Record<number, { items: PlanItem[] } | null> = {};
+    for (const p of data.people) {
+      if (!p.id || !(p.credit > 0)) continue;
+      const r = await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "preview_payment", user_id: p.id, amount: 0 }) }).then(r => r.json());
+      if ((r.items || []).some((i: any) => i.cover)) out[p.id] = { items: r.items };
+    }
+    setSugg(out);
+  })(); }, [data]);
   const preview = async (id: number) => {
     const amt = parseFloat(pend[id]?.amount);
     if (!(amt > 0)) return;
@@ -490,6 +502,30 @@ function TallyTab() {
                 </details>}
               </span>
             </div>
+            {p.id && sugg[p.id] && (() => {
+              const sg = sugg[p.id]!;
+              const tot = sg.items.filter(i => i.cover).reduce((s, i) => s + i.price, 0);
+              const setIt = (i: number, cover: boolean) => setSugg(x => ({ ...x, [p.id]: { items: sg.items.map((it, j) => j === i ? { ...it, cover } : it) } }));
+              return (
+                <div className="mt-2 rounded-lg border border-ea-gold bg-ea-gold/10 px-2.5 py-2 text-xs space-y-1.5">
+                  <div className="font-semibold opacity-70">💡 ${p.credit.toFixed(2)} credit on file could cover unpaid bookings — confirm to apply:</div>
+                  {sg.items.map((it, i) => (
+                    <label key={it.kind + it.id} className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={it.cover} onChange={e => setIt(i, e.target.checked)} />
+                      <span className={it.cover ? "" : "opacity-50"}>mark paid: {fmtD(it.date)} {fmtT(it.time)} · {it.title} · ${it.price}</span>
+                    </label>
+                  ))}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <button className="btn btn--accent text-xs !px-2.5 !py-1" disabled={busy || tot <= 0 || tot > p.credit}
+                      onClick={() => post({ op: "apply_credit", user_id: p.id, settle: sg.items.filter(i => i.cover).map(i => ({ kind: i.kind, id: i.id })) })}>
+                      ✓ Apply ${tot.toFixed(2)} credit
+                    </button>
+                    <button className="text-xs underline opacity-60 hover:opacity-100" onClick={() => setSugg(x => ({ ...x, [p.id]: null }))}>not now</button>
+                    {tot > p.credit && <span className="text-red-700 font-semibold">⚠ exceeds available credit</span>}
+                  </div>
+                </div>
+              );
+            })()}
             <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 mt-2">
               <div>
                 <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Activity</div>

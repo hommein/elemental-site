@@ -73,7 +73,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
   } else if (b.op === "delete_pack") {
     await D.prepare("DELETE FROM classpacks WHERE id=?1").bind(b.id).run();
   } else if (b.op === "preview_payment") {
-    if (!b.user_id || !(b.amount > 0)) return json({ error: "user_id + amount" }, 400);
+    if (!b.user_id || !(b.amount >= 0)) return json({ error: "user_id + amount" }, 400);
     const usr = await D.prepare("SELECT email FROM users WHERE id=?1").bind(b.user_id).first<any>();
     const items = usr?.email ? await unpaidItems(D, usr.email) : [];
     const cr = await D.prepare("SELECT COALESCE(SUM(unallocated),0) c FROM payments WHERE user_id=?1").bind(b.user_id).first<any>();
@@ -131,6 +131,27 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     const newPay = await D.prepare("SELECT id FROM payments WHERE user_id=?1 ORDER BY id DESC LIMIT 1").bind(b.user_id).first<any>();
     if (newPay) await D.prepare("UPDATE payments SET unallocated=?2 WHERE id=?1").bind(newPay.id, pool).run();
     return json({ ok: true, credits_added: credits, bookings_settled: settled, leftover: pool });
+  } else if (b.op === "apply_credit") {
+    // mark admin-confirmed bookings paid, draining credit-on-file (oldest payments first)
+    if (!b.user_id) return json({ error: "user_id" }, 400);
+    const usr = await D.prepare("SELECT email FROM users WHERE id=?1").bind(b.user_id).first<any>();
+    const priced = usr?.email ? await unpaidItems(D, usr.email) : [];
+    let total = 0, settled = 0;
+    for (const it of (b.settle || [])) {
+      const m = priced.find((x: any) => x.kind === it.kind && x.id === it.id);
+      if (!m) continue;
+      await D.prepare(`UPDATE ${m.kind} SET paid=1 WHERE id=?1`).bind(m.id).run();
+      total += m.price; settled++;
+    }
+    let left = total;
+    const rows = (await D.prepare("SELECT id, unallocated FROM payments WHERE user_id=?1 AND unallocated>0 ORDER BY id").bind(b.user_id).all()).results as any[];
+    for (const r of rows) {
+      if (left <= 0) break;
+      const take = Math.min(r.unallocated, left);
+      await D.prepare("UPDATE payments SET unallocated = unallocated - ?2 WHERE id=?1").bind(r.id, take).run();
+      left -= take;
+    }
+    return json({ ok: true, settled, credit_used: total - left });
   } else if (b.op === "edit_payment") {
     await D.prepare("UPDATE payments SET amount=COALESCE(?2,amount), method=COALESCE(?3,method), date=COALESCE(?4,date), note=COALESCE(?5,note) WHERE id=?1")
       .bind(b.id, b.amount ?? null, b.method ?? null, b.date ?? null, b.note ?? null).run();
