@@ -124,6 +124,25 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   return <div className="bg-white border border-ea-accent/40 rounded-lg p-3">
     <div className="text-xs font-semibold text-ea-espresso/70 mb-2">{title}</div>{children}</div>;
 }
+function OgCard({ st, wk, wl }: any) {
+  const [view, setView] = useState("hours");
+  const S = [{ name: "open gym & jam", color: GCOLOR.jam }];
+  return (
+    <ChartCard title="Open gym (90 days)">
+      <select value={view} onChange={e => setView(e.target.value)}
+        className="border border-black/20 rounded px-2 py-1 text-xs mb-2">
+        <option value="hours">Most popular hours</option>
+        <option value="days">Visits by day of week</option>
+        <option value="weeks">Visits per week</option>
+      </select>
+      {view === "hours" && <StackBars series={S}
+        labels={Array.from({ length: 13 }, (_, i) => { const h = i + 8; return `${((h + 11) % 12) + 1}${h >= 12 ? "p" : "a"}`; })}
+        rows={Array.from({ length: 13 }, (_, i) => [st.ogHour?.[String(i + 8).padStart(2, "0") + ":00"] || 0])} />}
+      {view === "days" && <StackBars series={S} labels={DAYS}
+        rows={(st.byDay || []).map((d: any) => [d.og])} />}
+      {view === "weeks" && <StackBars series={S} labels={wl} rows={wk.map((w: any) => [w.opengym])} />}
+    </ChartCard>);
+}
 function StackBars({ rows, series, labels, money }: {
   rows: number[][]; series: { name: string; color: string }[]; labels: string[]; money?: boolean }) {
   const totals = rows.map(r => r.reduce((a, b) => a + b, 0));
@@ -200,14 +219,7 @@ function TrendsTab() {
       <ChartCard title="Payments logged per week ($)">
         <StackBars rows={wk.map(w => [w.revenue])} labels={wl} money series={[{ name: "$", color: CH.green }]} />
       </ChartCard>
-      <ChartCard title="Open gym — visits per week">
-        <StackBars rows={wk.map(w => [w.opengym])} labels={wl} series={[{ name: "open gym & jam", color: GCOLOR.jam }]} />
-      </ChartCard>
-      <ChartCard title="Open gym — popular hours (90 days)">
-        <StackBars labels={Array.from({ length: 13 }, (_, i) => { const h = i + 8; return `${((h + 11) % 12) + 1}${h >= 12 ? "p" : "a"}`; })}
-          series={[{ name: "bookings", color: GCOLOR.jam }]}
-          rows={Array.from({ length: 13 }, (_, i) => [st.ogHour?.[String(i + 8).padStart(2, "0") + ":00"] || 0])} />
-      </ChartCard>
+      <OgCard st={st} wk={wk} wl={wl} />
       <ChartCard title="Most popular classes (90 days)">
         <HBars items={(st.topClasses || []).map((t: any) => ({ label: t.title, n: t.n, color: GCOLOR[t.group] }))} color={CH.gold} />
       </ChartCard>
