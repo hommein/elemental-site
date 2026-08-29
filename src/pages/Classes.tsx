@@ -171,9 +171,11 @@ export default function Classes() {
             onClick={() => setWeek(null)}>back to this week</button>
         )}
       </div>
-      <div className="text-center mb-5 -mt-2">
-        <button className="text-sm underline text-ea-espresso/70 hover:text-ea-olive"
-          onClick={() => setShowBk(true)}>My bookings / cancel</button>
+      <div className="text-center mb-6">
+        <button onClick={() => setShowBk(true)}
+          className="btn btn--accent px-5 py-2 text-sm shadow-sm">
+          📋 My Bookings &amp; Cancellations
+        </button>
       </div>
 
       {/* mobile day picker */}
