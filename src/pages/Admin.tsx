@@ -112,6 +112,10 @@ const VENMO = "https://account.venmo.com/u/Katelyn-Carano";
 // Must match /api/pack "balance" and signup.ts pack_remaining — one number everywhere.
 const pkBal = (p: any): number | null =>
   p.packs && p.packs.length ? p.packs.reduce((s: number, k: any) => s + k.remaining, 0) : null;
+// canonical "unpaid bookings" + "owes money" — the ONLY definitions; stat cards and
+// member-card badges must always agree.
+const unpaidOf = (p: any) => [...p.classes, ...p.opengym].filter((x: any) => x.pay_method !== "pack" && !x.paid);
+const owesOf = (p: any) => { const b = pkBal(p); return (b != null && b < 0) || unpaidOf(p).length > 0; };
 
 
 /* ---- tiny dependency-free SVG charts ---- */
@@ -350,10 +354,8 @@ function TallyTab() {
         const cls = ppl.flatMap(p => p.classes);
         const og = ppl.flatMap(p => p.opengym);
         const active = ppl.filter(p => p.classes.length + p.opengym.length > 0);
-        const by = (m: string) => cls.filter((c: any) => c.pay_method === m).length;
-        const owing = ppl.filter(p => { const t = p.classes.length + p.opengym.length;
-          const bal = pkBal(p);
-          return (bal != null && bal < 0) || (t > 0 && (bal == null || bal < t)); }).length;
+        const by = (m: string) => [...cls, ...og].filter((c: any) => c.pay_method === m).length;
+        const owing = ppl.filter(owesOf).length;
         const paysIn = ppl.flatMap(p => p.payments || []).filter((x: any) => inR(x.date));
         const paid = paysIn.reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const packsSold = ppl.flatMap(p => p.packs || []).filter((k: any) => inR((k.purchased_at || "").slice(0, 10))).length;
@@ -372,7 +374,7 @@ function TallyTab() {
             {stat(by("venmo"), "venmo")}
             {stat(by("cash"), "cash")}
             {stat(owing, "owe money")}
-            {stat("$" + paid, "payments logged")}
+            {stat("$" + (paid % 1 ? paid.toFixed(2) : paid), "payments logged")}
             {stat(packsSold, "packs sold")}
             {stat("$" + ppl.reduce((s: number, p: any) => s + (p.credit || 0), 0).toFixed(2), "credit on file")}
           </div>
@@ -442,8 +444,7 @@ function TallyTab() {
         const qq = norm(q.trim());
         const tk = (p: any) => p.classes.length + p.opengym.length;
         const pkRem = (p: any) => { const b = pkBal(p); return b == null ? 9999 : b; };
-        const unpaid = (p: any) => [...p.classes, ...p.opengym].filter((x: any) => x.pay_method !== "pack" && !x.paid);
-        const owesF = (p: any) => { const b = pkBal(p); return (b != null && b < 0) || unpaid(p).length > 0; };
+        const owesF = owesOf;
         const paidT = (p: any) => (p.payments || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const cmp: Record<string, (a: any, b: any) => number> = {
           active: (a, b) => tk(b) - tk(a),
@@ -461,7 +462,7 @@ function TallyTab() {
         const taken = p.classes.length + p.opengym.length;
         const bal = pkBal(p);
         const pack = bal != null ? { remaining: bal } : null;
-        const owes = (bal != null && bal < 0) || unpaid(p).length > 0;
+        const owes = owesOf(p);
         const smsBody = encodeURIComponent(
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} classes left.` : "") +
