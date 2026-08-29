@@ -277,14 +277,31 @@ function TallyTab() {
     else { const [y, m] = month.split("-").map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); setMonth(d.toISOString().slice(0, 7)); }
   };
   const post = async (body: any) => { setBusy(true); await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); await load(); setBusy(false); };
-  const [pend, setPend] = useState<Record<number, { amount: string; method: string }>>({});
+  type PlanItem = { kind: string; id: number; date: string; time: string; title: string; price: number; cover: boolean };
+  type Pend = { amount: string; method: string; plan?: { credits: number; items: PlanItem[] } };
+  const [pend, setPend] = useState<Record<number, Pend>>({});
   const setP = (id: number, patch: any) => setPend(x => ({ ...x, [id]: { ...{ amount: "", method: "venmo" }, ...x[id], ...patch } }));
   const pendIds = Object.keys(pend).filter(k => parseFloat(pend[+k]?.amount) > 0).map(Number);
+  const preview = async (id: number) => {
+    const amt = parseFloat(pend[id]?.amount);
+    if (!(amt > 0)) return;
+    const r = await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "preview_payment", user_id: id, amount: amt }) }).then(r => r.json());
+    setP(id, { plan: { credits: r.credits, items: r.items } });
+  };
+  const leftover = (pd: Pend) => {
+    if (!pd.plan) return 0;
+    return (parseFloat(pd.amount) || 0) - pd.plan.credits * 27.5
+      - pd.plan.items.filter(i => i.cover).reduce((s, i) => s + i.price, 0);
+  };
   const saveAll = async () => {
     setBusy(true);
-    for (const id of pendIds)
-      await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op: "add_payment", user_id: id, amount: parseFloat(pend[id].amount), method: pend[id].method }) });
+    for (const id of pendIds) {
+      const pd = pend[id];
+      const body: any = { op: "add_payment", user_id: id, amount: parseFloat(pd.amount), method: pd.method };
+      if (pd.plan) body.plan = { credits: pd.plan.credits, settle: pd.plan.items.filter(i => i.cover).map(i => ({ kind: i.kind, id: i.id })) };
+      await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    }
     setPend({}); await load(); setBusy(false);
   };
 
@@ -522,7 +539,9 @@ function TallyTab() {
                       ${parseFloat(pend[p.id]?.amount) > 0 ? "border-ea-gold bg-ea-gold/15" : "border-black/15"}`}>
                     <span className="text-xs opacity-60">+ payment $</span>
                     <input inputMode="decimal" placeholder="0" value={pend[p.id]?.amount || ""}
-                      onChange={e => setP(p.id, { amount: e.target.value })}
+                      onChange={e => setP(p.id, { amount: e.target.value, plan: undefined })}
+                      onBlur={() => preview(p.id)}
+                      onKeyDown={e => { if (e.key === "Enter") preview(p.id); }}
                       className="w-14 border border-black/20 rounded px-1.5 py-0.5 text-xs bg-white" />
                     <select value={pend[p.id]?.method || "venmo"} onChange={e => setP(p.id, { method: e.target.value })}
                       className="border border-black/20 rounded px-1 py-0.5 text-xs bg-white">
@@ -533,6 +552,33 @@ function TallyTab() {
                     ? <a className="btn text-xs !px-2.5 !py-1" href={`sms:${p.phone}?&body=${smsBody}`}>📱 text reminder</a>
                     : <span className="text-xs opacity-50 italic">no phone on file</span>}
                 </div>
+                {p.id && pend[p.id]?.plan && parseFloat(pend[p.id].amount) > 0 && (() => {
+                  const pd = pend[p.id]; const plan = pd.plan!;
+                  const lo = leftover(pd);
+                  const setPlan = (patch: any) => setP(p.id, { plan: { ...plan, ...patch } });
+                  return (
+                    <div className="mt-2 rounded-lg border border-ea-gold bg-ea-gold/10 px-2.5 py-2 text-xs space-y-1.5">
+                      <div className="font-semibold opacity-70">How ${pd.amount} gets applied — confirm or adjust:</div>
+                      <label className="flex items-center gap-1.5">
+                        <span>Add</span>
+                        <input inputMode="numeric" value={plan.credits}
+                          onChange={e => setPlan({ credits: Math.max(0, parseInt(e.target.value) || 0) })}
+                          className="w-10 border border-black/20 rounded px-1 py-0.5 bg-white text-center" />
+                        <span>pack credits {plan.credits > 0 && <span className="opacity-50">(${(plan.credits * 27.5).toFixed(0)})</span>}</span>
+                      </label>
+                      {plan.items.length > 0 ? plan.items.map((it, i) => (
+                        <label key={it.kind + it.id} className="flex items-center gap-1.5 cursor-pointer">
+                          <input type="checkbox" checked={it.cover}
+                            onChange={e => setPlan({ items: plan.items.map((x, j) => j === i ? { ...x, cover: e.target.checked } : x) })} />
+                          <span className={it.cover ? "" : "opacity-50"}>mark paid: {fmtD(it.date)} {fmtT(it.time)} · {it.title} · ${it.price}</span>
+                        </label>
+                      )) : <div className="opacity-50 italic">no unpaid bookings</div>}
+                      <div className={lo < 0 ? "text-red-700 font-semibold" : "opacity-60"}>
+                        {lo < 0 ? `⚠ over-allocated by $${Math.abs(lo).toFixed(2)}` : `$${lo.toFixed(2)} unallocated (recorded as credit toward future)`}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
