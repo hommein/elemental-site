@@ -118,7 +118,17 @@ const pkBal = (p: any): number | null =>
 // canonical "unpaid bookings" + "owes money" — the ONLY definitions; stat cards and
 // member-card badges must always agree.
 const unpaidOf = (p: any) => [...p.classes, ...p.opengym].filter((x: any) => x.billable && !x.paid);
-const owesOf = (p: any) => { const b = pkBal(p); return (b != null && b < 0) || unpaidOf(p).length > 0; };
+// net $ owed = unpaid billable bookings + overdrawn pack ($27.50/class) − credit on file
+const owedOf = (p: any) =>
+  unpaidOf(p).reduce((s: number, x: any) => s + (Number(x.price) || 0), 0)
+  + Math.max(0, -(pkBal(p) ?? 0)) * 27.5 - (Number(p.credit) || 0);
+const owesOf = (p: any) => owedOf(p) > 0.004;
+// base drop-in prices; per-class overrides (guest teachers etc.) ride in on each row's `price`
+const BASE_PRICE: Record<string, number> = { aerial: 30, flex: 12, opengym: 10 };
+const matchP = (i: any, k: string) =>
+  k === "opengym" ? (i.kind === "opengym" || i.title === "Community Jam")
+  : k === "flex" ? ["flex", "flow"].includes(i.category)
+  : i.kind === "signups" && i.title !== "Community Jam" && !["flex", "flow"].includes(i.category);
 
 
 /* ---- tiny dependency-free SVG charts ---- */
@@ -289,11 +299,14 @@ function TallyTab() {
     else { const [y, m] = month.split("-").map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); setMonth(d.toISOString().slice(0, 7)); }
   };
   const post = async (body: any) => { setBusy(true); const r = await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || `Failed (${r.status}) — nothing saved`); } await load(); setBusy(false); };
-  type PlanItem = { kind: string; id: number; date: string; time: string; title: string; price: number; cover: boolean };
-  type Pend = { amount: string; method: string; plan?: { credits: number; items: PlanItem[]; credit: number } };
+  type PlanItem = { kind: string; id: number; date: string; time: string; title: string; category?: string; price: number; cover: boolean };
+  type Pend = { amount: string; method: string; purpose: string; start?: string; items?: PlanItem[] };
   const [pend, setPend] = useState<Record<number, Pend>>({});
-  const setP = (id: number, patch: any) => setPend(x => ({ ...x, [id]: { ...{ amount: "", method: "venmo" }, ...x[id], ...patch } }));
-  const pendIds = Object.keys(pend).filter(k => parseFloat(pend[+k]?.amount) > 0).map(Number);
+  const setP = (id: number, patch: any) => setPend(x => ({ ...x, [id]: { ...{ amount: "", method: "venmo", purpose: "" }, ...x[id], ...patch } }));
+  const pendIds = Object.keys(pend).filter(k => {
+    const pd = pend[+k]; if (!pd?.purpose) return false;
+    return parseFloat(pd.amount) > 0 || (pd.purpose === "membership" && pd.method === "waived");
+  }).map(Number);
   const [sugg, setSugg] = useState<Record<number, { items: PlanItem[] } | null>>({});
   useEffect(() => { (async () => {
     if (!data?.people) return;
@@ -306,25 +319,42 @@ function TallyTab() {
     }
     setSugg(out);
   })(); }, [data]);
-  const preview = async (id: number) => {
-    const amt = parseFloat(pend[id]?.amount);
-    if (!(amt > 0)) return;
+  // load a user's unpaid bookings; if `kind` given, auto-check the oldest matching one and fill the amount
+  const fetchItems = async (id: number, kind?: string) => {
     const r = await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ op: "preview_payment", user_id: id, amount: amt }) }).then(r => r.json());
-    setP(id, { plan: { credits: r.credits, items: r.items, credit: r.credit || 0 } });
+      body: JSON.stringify({ op: "preview_payment", user_id: id, amount: 0 }) }).then(r => r.json());
+    let items: PlanItem[] = (r.items || []).map((i: any) => ({ ...i, cover: false }));
+    if (kind) {
+      const ix = items.findIndex(i => matchP(i, kind));
+      if (ix >= 0) items = items.map((i, j) => j === ix ? { ...i, cover: true } : i);
+      const tot = items.filter(i => i.cover).reduce((s, i) => s + i.price, 0);
+      setP(id, { items, amount: String(tot > 0 ? tot : BASE_PRICE[kind]) });
+    } else setP(id, { items });
   };
-  const leftover = (pd: Pend) => {
-    if (!pd.plan) return 0;
-    return (parseFloat(pd.amount) || 0) + (pd.plan.credit || 0) - pd.plan.credits * 27.5
-      - pd.plan.items.filter(i => i.cover).reduce((s, i) => s + i.price, 0);
+  const toggleItem = (id: number, pd: Pend, it: PlanItem, on: boolean) => {
+    const items = (pd.items || []).map(x => x.kind === it.kind && x.id === it.id ? { ...x, cover: on } : x);
+    const tot = items.filter(i => i.cover).reduce((s, i) => s + i.price, 0);
+    setP(id, { items, ...(tot > 0 ? { amount: String(tot) } : {}) });
   };
   const saveAll = async () => {
     setBusy(true);
     for (const id of pendIds) {
-      const pd = pend[id];
-      const body: any = { op: "add_payment", user_id: id, amount: parseFloat(pd.amount), method: pd.method };
-      if (pd.plan) body.plan = { credits: pd.plan.credits, settle: pd.plan.items.filter(i => i.cover).map(i => ({ kind: i.kind, id: i.id })) };
-      await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const pd = pend[id]; const amt = parseFloat(pd.amount) || 0;
+      let body: any;
+      if (pd.purpose === "membership")
+        body = { op: "add_membership", user_id: id, start: pd.start || undefined, method: pd.method, amount: amt };
+      else if (pd.purpose === "pack")
+        body = { op: "add_payment", user_id: id, amount: amt, method: pd.method, note: "class pack (4 classes)",
+          plan: { credits: 4, new_pack: true, settle: [] } };
+      else {
+        const settle = (pd.items || []).filter(i => i.cover && (pd.purpose === "credit" || matchP(i, pd.purpose)))
+          .map(i => ({ kind: i.kind, id: i.id }));
+        const note = pd.purpose === "credit" ? "credit on file" :
+          pd.purpose === "opengym" ? "open gym / jam" : `single ${pd.purpose} class`;
+        body = { op: "add_payment", user_id: id, amount: amt, method: pd.method, note, plan: { credits: 0, settle } };
+      }
+      const r = await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || `Failed (${r.status})`); }
     }
     setPend({}); await load(); setBusy(false);
   };
@@ -476,7 +506,7 @@ function TallyTab() {
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} classes left.` : "") +
           (p.credit > 0 ? ` You have $${p.credit.toFixed(2)} credit on file.` : "") +
-          (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
+          (owes ? ` Please Venmo Katelyn $${owedOf(p).toFixed(2)} (note: "Aerial") or bring cash. ${VENMO}` : " You're all set!"));
         const fmtD = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
         const fmtT = (t: string) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
         const payBtn = (x: any, kind: string) => x.pay_method === "waived" ?
@@ -517,12 +547,12 @@ function TallyTab() {
                   <summary className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700 cursor-pointer list-none select-none">owes ▾</summary>
                   <div className="absolute right-0 mt-1 z-10 bg-white border border-red-200 rounded-lg shadow-lg p-2.5 text-xs w-60 font-normal">
                     <p className="font-semibold text-red-700 mb-1">Owes for:</p>
+                    {unpaidOf(p).map((x: any, i: number) => (
+                      <p key={i}>{fmtD(x.date)} {fmtT(x.time)} · {x.title || "Open Gym"} · ${x.price} <span className="opacity-60">({x.pay_method || "unpaid"})</span></p>))}
                     {pack && pack.remaining < 0 &&
-                      <p className="mb-1">Class pack overdrawn by <strong>{-pack.remaining}</strong> class{pack.remaining === -1 ? "" : "es"}</p>}
-                    {p.classes.filter((c: any) => c.pay_method !== "pack" && !c.paid).map((c: any, i: number) => (
-                      <p key={"c" + i}>{fmtD(c.date)} {fmtT(c.time)} · {c.title} <span className="opacity-60">({c.pay_method || "unpaid"})</span></p>))}
-                    {p.opengym.filter((o: any) => o.pay_method !== "pack" && !o.paid).map((o: any, i: number) => (
-                      <p key={"o" + i}>{fmtD(o.date)} {fmtT(o.time)} · {o.title || "Open Gym"} $10 <span className="opacity-60">({o.pay_method || "unpaid"})</span></p>))}
+                      <p>Class pack overdrawn by <strong>{-pack.remaining}</strong> class{pack.remaining === -1 ? "" : "es"} (${(-pack.remaining * 27.5).toFixed(2)})</p>}
+                    {p.credit > 0 && <p className="text-ea-olive">− ${p.credit.toFixed(2)} credit on file</p>}
+                    <p className="font-semibold border-t border-red-200 mt-1.5 pt-1">Total owed: ${owedOf(p).toFixed(2)}</p>
 
                   </div>
                 </details>}
@@ -608,57 +638,85 @@ function TallyTab() {
                     </div>))}
                 </div>}
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => { const sz = prompt("Pack size?", "4"); if (sz) post({ op: "add_pack", user_id: p.id, size: +sz }); }}>+ new pack</button>}
-                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => {
-                    const cur = (p.memberships || [])[0];
-                    const def = cur && cur.end_date >= today() ? nextDay(cur.end_date) : today();
-                    const st = prompt("Membership start date (YYYY-MM-DD)? $100, runs 1 month.", def); if (!st) return;
-                    const m = prompt("Paid by? (venmo / cash / waive — waive = work trade, no payment recorded)", "venmo"); if (m === null) return;
-                    const t = m.trim().toLowerCase();
-                    post({ op: "add_membership", user_id: p.id, start: st, method: t.startsWith("waiv") ? "waived" : t === "cash" ? "cash" : "venmo" });
-                  }}>{(p.member_until && p.member_until >= today()) ? "renew membership" : "+ membership"}</button>}
-                  {p.id && <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1
-                      ${parseFloat(pend[p.id]?.amount) > 0 ? "border-ea-gold bg-ea-gold/15" : "border-black/15"}`}>
-                    <span className="text-xs opacity-60">+ payment $</span>
-                    <input inputMode="decimal" placeholder="0" value={pend[p.id]?.amount || ""}
-                      onChange={e => setP(p.id, { amount: e.target.value, plan: undefined })}
-                      onBlur={() => preview(p.id)}
-                      onKeyDown={e => { if (e.key === "Enter") preview(p.id); }}
-                      className="w-14 border border-black/20 rounded px-1.5 py-0.5 text-xs bg-white" />
-                    <select value={pend[p.id]?.method || "venmo"} onChange={e => setP(p.id, { method: e.target.value })}
-                      className="border border-black/20 rounded px-1 py-0.5 text-xs bg-white">
-                      <option value="venmo">venmo</option><option value="cash">cash</option>
-                    </select>
-                  </span>}
+                  {p.id && <button className="btn text-xs !px-2.5 !py-1" disabled={busy}
+                    onClick={() => {
+                      if (pend[p.id]) setPend(x => { const y = { ...x }; delete y[+p.id]; return y; });
+                      else setP(p.id, { amount: "", method: "venmo", purpose: "" });
+                    }}>{pend[p.id] ? "✕ discard payment" : "+ payment"}</button>}
                   {p.phone
                     ? <a className="btn text-xs !px-2.5 !py-1" href={`sms:${p.phone}?&body=${smsBody}`}>📱 text reminder</a>
                     : <span className="text-xs opacity-50 italic">no phone on file</span>}
                 </div>
-                {p.id && pend[p.id]?.plan && parseFloat(pend[p.id].amount) > 0 && (() => {
-                  const pd = pend[p.id]; const plan = pd.plan!;
-                  const lo = leftover(pd);
-                  const setPlan = (patch: any) => setP(p.id, { plan: { ...plan, ...patch } });
+                {p.id && pend[p.id] && (() => {
+                  const pd = pend[p.id];
+                  const cur = (p.memberships || [])[0];
+                  const memDef = cur && cur.end_date >= today() ? nextDay(cur.end_date) : today();
+                  const amt = parseFloat(pd.amount) || 0;
+                  const single = ["aerial", "flex", "opengym"].includes(pd.purpose);
+                  const mine = single ? (pd.items || []).filter(i => matchP(i, pd.purpose)) : [];
+                  const checked = mine.filter(i => i.cover).reduce((sum, i) => sum + i.price, 0);
+                  const lo = amt - checked;
+                  const setPurpose = (v: string) => {
+                    const patch: any = { purpose: v };
+                    if (v === "pack") patch.amount = "110";
+                    if (v === "membership") { patch.amount = pd.method === "waived" ? "0" : "100"; patch.start = pd.start || memDef; }
+                    setP(p.id, patch);
+                    if (["aerial", "flex", "opengym"].includes(v)) fetchItems(p.id, v);
+                  };
                   return (
                     <div className="mt-2 rounded-lg border border-ea-gold bg-ea-gold/10 px-2.5 py-2 text-xs space-y-1.5">
-                      <div className="font-semibold opacity-70">How ${pd.amount} gets applied — confirm or adjust:</div>
-                      {plan.credit > 0 && <div className="text-ea-olive">+ ${plan.credit.toFixed(2)} existing credit on file is included</div>}
-                      <label className="flex items-center gap-1.5">
-                        <span>Add</span>
-                        <input inputMode="numeric" value={plan.credits}
-                          onChange={e => setPlan({ credits: Math.max(0, parseInt(e.target.value) || 0) })}
-                          className="w-10 border border-black/20 rounded px-1 py-0.5 bg-white text-center" />
-                        <span>pack credits {plan.credits > 0 && <span className="opacity-50">(${(plan.credits * 27.5).toFixed(0)})</span>}</span>
-                      </label>
-                      {plan.items.length > 0 ? plan.items.map((it, i) => (
-                        <label key={it.kind + it.id} className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="checkbox" checked={it.cover}
-                            onChange={e => setPlan({ items: plan.items.map((x, j) => j === i ? { ...x, cover: e.target.checked } : x) })} />
-                          <span className={it.cover ? "" : "opacity-50"}>mark paid: {fmtD(it.date)} {fmtT(it.time)} · {it.title} · ${it.price}</span>
-                        </label>
-                      )) : <div className="opacity-50 italic">no unpaid bookings</div>}
-                      <div className={lo < 0 ? "text-red-700 font-semibold" : "opacity-60"}>
-                        {lo < 0 ? `⚠ over-allocated by $${Math.abs(lo).toFixed(2)}` : `$${lo.toFixed(2)} stays on file as credit (shown on their card + account)`}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-semibold opacity-70">Payment received: $</span>
+                        <input inputMode="decimal" placeholder="0" value={pd.amount}
+                          onChange={e => setP(p.id, { amount: e.target.value })}
+                          className="w-16 border border-black/20 rounded px-1.5 py-0.5 bg-white" />
+                        <span>via</span>
+                        <select value={pd.method}
+                          onChange={e => { const m = e.target.value; setP(p.id, { method: m, ...(pd.purpose === "membership" ? { amount: m === "waived" ? "0" : "100" } : {}) }); }}
+                          className="border border-black/20 rounded px-1 py-0.5 bg-white">
+                          <option value="venmo">venmo</option><option value="cash">cash</option>
+                          {pd.purpose === "membership" && <option value="waived">waived (work trade)</option>}
+                        </select>
+                        <span className="font-semibold opacity-70 ml-1">for</span>
+                        <select value={pd.purpose} onChange={e => setPurpose(e.target.value)}
+                          className="border border-black/20 rounded px-1 py-0.5 bg-white">
+                          <option value="">— what was it for? —</option>
+                          <option value="pack">New class pack · 4 classes · $110</option>
+                          <option value="membership">Open gym membership · $100/mo</option>
+                          <option value="aerial">Single aerial class · $30</option>
+                          <option value="flex">Single flex/flow class · $12</option>
+                          <option value="opengym">Open gym / jam session · $10</option>
+                          <option value="credit">Credit on file (decide later)</option>
+                        </select>
                       </div>
+                      {!pd.purpose && <div className="opacity-60 italic">Pick what the payment was for to enable saving.</div>}
+                      {pd.purpose === "pack" && <div className="opacity-70">
+                        Adds a fresh 4-class pack{amt > 0 && amt !== 110 ? ` — heads up: $${amt} is non-standard (pack is $110), still grants 4 classes` : " ($27.50/class)"}.
+                      </div>}
+                      {pd.purpose === "membership" && <div className="flex flex-wrap items-center gap-1.5">
+                        <span>starts</span>
+                        <input value={pd.start ?? memDef} onChange={e => setP(p.id, { start: e.target.value })}
+                          className="w-28 border border-black/20 rounded px-1.5 py-0.5 bg-white" />
+                        <span className="opacity-60">runs 1 month · covers open gym + Community Jam only{cur && cur.end_date >= today() ? " · extends current membership" : ""}</span>
+                      </div>}
+                      {single && <div className="space-y-1">
+                        {mine.length > 0 ? <>
+                          <div className="opacity-70">Applies to (uses each booking's real price — guest classes may differ):</div>
+                          {mine.map(it => (
+                            <label key={it.kind + it.id} className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox" checked={it.cover} onChange={e => toggleItem(p.id, pd, it, e.target.checked)} />
+                              <span className={it.cover ? "" : "opacity-50"}>{fmtD(it.date)} {fmtT(it.time)} · {it.title || "Open Gym"} · ${it.price}</span>
+                            </label>))}
+                        </> : pd.items
+                          ? <div className="opacity-60 italic">No unpaid booking of that type on file — saved as credit and applied when they book.</div>
+                          : <div className="opacity-60 italic">loading their unpaid bookings…</div>}
+                        {mine.some(i => i.cover) && Math.abs(lo) > 0.004 && (
+                          <div className={lo < 0 ? "text-red-700 font-semibold" : "opacity-60"}>
+                            {lo < 0 ? `⚠ $${Math.abs(lo).toFixed(2)} short of the selected bookings — the last ones stay unpaid`
+                              : `$${lo.toFixed(2)} extra stays on file as credit`}
+                          </div>)}
+                      </div>}
+                      {pd.purpose === "credit" && <div className="opacity-70">${amt > 0 ? amt.toFixed(2) : "…"} stays on file as credit (shown on their card + account) — apply it to bookings anytime.</div>}
                     </div>
                   );
                 })()}

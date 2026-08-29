@@ -112,9 +112,10 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     const d = new Date(start + "T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(d.getUTCDate() - 1);
     const end = d.toISOString().slice(0, 10);
     const method = ["venmo", "cash", "waived"].includes(b.method) ? b.method : "venmo";
-    await D.prepare("INSERT INTO memberships(user_id,start_date,end_date,price) VALUES(?,?,?,?)").bind(b.user_id, start, end, method === "waived" ? 0 : 100).run();
-    if (method !== "waived") await D.prepare("INSERT INTO payments(user_id,date,amount,method,note) VALUES(?,?,100,?,?)")
-      .bind(b.user_id, start, method, `open gym membership ${start} → ${end}`).run();
+    const price = method === "waived" ? 0 : (Number(b.amount) > 0 ? Number(b.amount) : 100);
+    await D.prepare("INSERT INTO memberships(user_id,start_date,end_date,price) VALUES(?,?,?,?)").bind(b.user_id, start, end, price).run();
+    if (method !== "waived") await D.prepare("INSERT INTO payments(user_id,date,amount,method,note) VALUES(?,?,?,?,?)")
+      .bind(b.user_id, start, price, method, `open gym membership ${start} → ${end}`).run();
     return json({ ok: true, start, end });
   }
   if (b.op === "delete_membership") {
@@ -140,7 +141,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     const out = items.map((it: any) => {
       const cover = pool >= it.price;
       if (cover) pool -= it.price;
-      return { kind: it.kind, id: it.id, date: it.date, time: it.time, title: it.title, price: it.price, cover };
+      return { kind: it.kind, id: it.id, date: it.date, time: it.time, title: it.title, category: it.category, price: it.price, cover };
     });
     return json({ credits, items: out, leftover: pool, credit });
   } else if (b.op === "add_payment") {
@@ -160,7 +161,9 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     if (b.plan) {
       // admin-confirmed distribution: apply exactly what was approved
       credits = Math.max(0, b.plan.credits | 0);
-      await addCredits(credits);
+      if (b.plan.new_pack && credits > 0)
+        await D.prepare("INSERT INTO classpacks (user_id,size,remaining,note) VALUES (?1,?2,?2,'pack purchase')").bind(b.user_id, credits).run();
+      else await addCredits(credits);
       spent += credits * 27.5;
       const priced = usr?.email ? await unpaidItems(D, usr.email) : [];
       for (const it of (b.plan.settle || [])) {
