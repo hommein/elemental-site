@@ -17,6 +17,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   await env.DB.prepare(`DELETE FROM ${kind === "class" ? "signups" : "opengym"} WHERE id = ?1`).bind(id).run();
   if (kind === "class" && row.pack_id)
-    await env.DB.prepare("UPDATE classpacks SET remaining = MIN(remaining+1, size) WHERE id = ?1").bind(row.pack_id).run();
+    await env.DB.prepare("UPDATE classpacks SET remaining = remaining + 1 WHERE id = ?1").bind(row.pack_id).run();
   return json({ ok: true });
 };
