@@ -382,7 +382,8 @@ function TallyTab() {
         const qq = norm(q.trim());
         const tk = (p: any) => p.classes.length + p.opengym.length;
         const pkRem = (p: any) => { const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return k ? k.remaining : 9999; };
-        const owesF = (p: any) => { const t = tk(p); const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return (k && k.remaining < 0) || (t > 0 && (!k || k.remaining < t)); };
+        const unpaid = (p: any) => [...p.classes, ...p.opengym].filter((x: any) => x.pay_method !== "pack" && !x.paid);
+        const owesF = (p: any) => { const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return (k && k.remaining < 0) || unpaid(p).length > 0; };
         const paidT = (p: any) => (p.payments || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const cmp: Record<string, (a: any, b: any) => number> = {
           active: (a, b) => tk(b) - tk(a),
@@ -399,13 +400,22 @@ function TallyTab() {
         return shown.map((p: any) => {
         const taken = p.classes.length + p.opengym.length;
         const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
-        const owes = (pack && pack.remaining < 0) || (taken > 0 && (!pack || pack.remaining < taken));
+        const owes = (pack && pack.remaining < 0) || unpaid(p).length > 0;
         const smsBody = encodeURIComponent(
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} of ${pack.size} classes left.` : "") +
           (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
         const fmtD = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
         const fmtT = (t: string) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
+        const payBtn = (x: any, kind: string) => x.pay_method === "pack" ? null : x.paid ?
+          <button className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-emerald-100 text-emerald-800"
+            title="Click to mark unpaid" disabled={busy}
+            onClick={() => post({ op: "mark_paid", kind, id: x.id, paid: 0 })}>paid ✓</button> :
+          <>
+            <span className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-red-100 text-red-700">owes</span>
+            <button className="text-[10px] px-1.5 py-px rounded-full font-semibold border border-emerald-400 text-emerald-700 hover:bg-emerald-50"
+              disabled={busy} onClick={() => post({ op: "mark_paid", kind, id: x.id, paid: 1 })}>mark paid</button>
+          </>;
         const payChip = (m: string | null) => m ?
           <span className={"text-[10px] px-1.5 py-px rounded-full font-semibold " +
             (m === "pack" ? "bg-ea-gold/40 text-ea-olive" : m === "venmo" ? "bg-sky-100 text-sky-800" : "bg-emerald-100 text-emerald-800")}>{m}</span> : null;
@@ -425,12 +435,11 @@ function TallyTab() {
                     <p className="font-semibold text-red-700 mb-1">Owes for:</p>
                     {pack && pack.remaining < 0 &&
                       <p className="mb-1">Class pack overdrawn by <strong>{-pack.remaining}</strong> class{pack.remaining === -1 ? "" : "es"}</p>}
-                    {p.classes.filter((c: any) => c.pay_method !== "pack").map((c: any, i: number) => (
+                    {p.classes.filter((c: any) => c.pay_method !== "pack" && !c.paid).map((c: any, i: number) => (
                       <p key={"c" + i}>{fmtD(c.date)} {fmtT(c.time)} · {c.title} <span className="opacity-60">({c.pay_method || "unpaid"})</span></p>))}
-                    {p.opengym.map((o: any, i: number) => (
+                    {p.opengym.filter((o: any) => o.pay_method !== "pack" && !o.paid).map((o: any, i: number) => (
                       <p key={"o" + i}>{fmtD(o.date)} {fmtT(o.time)} · {o.title || "Open Gym"} $10 <span className="opacity-60">({o.pay_method || "unpaid"})</span></p>))}
-                    {(p.payments || []).length > 0 &&
-                      <p className="mt-1 opacity-60">Check payments logged below — some may already be settled.</p>}
+
                   </div>
                 </details>}
               </span>
@@ -442,12 +451,12 @@ function TallyTab() {
                 {p.classes.map((c: any, i: number) => (
                   <div key={"c" + i} className="text-sm flex items-baseline gap-2">
                     <span className="opacity-60 w-24 shrink-0">{fmtD(c.date)}</span>
-                    <span>{fmtT(c.time)} · {c.title}</span>{payChip(c.pay_method)}
+                    <span>{fmtT(c.time)} · {c.title}</span>{payChip(c.pay_method)}{payBtn(c, "class")}
                   </div>))}
                 {p.opengym.map((o: any, i: number) => (
                   <div key={"o" + i} className="text-sm flex items-baseline gap-2">
                     <span className="opacity-60 w-24 shrink-0">{fmtD(o.date)}</span>
-                    <span>{fmtT(o.time)} · {o.title || "Open Gym"} ($10)</span>{payChip(o.pay_method)}
+                    <span>{fmtT(o.time)} · {o.title || "Open Gym"} ($10)</span>{payChip(o.pay_method)}{payBtn(o, "opengym")}
                   </div>))}
               </div>
               <div>
