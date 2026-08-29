@@ -61,6 +61,33 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     if (!b.user_id || !(b.amount > 0)) return json({ error: "user_id + amount" }, 400);
     await D.prepare("INSERT INTO payments (user_id,amount,method,note,date) VALUES (?1,?2,?3,?4,COALESCE(?5,date('now')))")
       .bind(b.user_id, b.amount, b.method || "venmo", b.note || null, b.date || null).run();
+    // auto-settle: $110 chunks buy 4 pack credits; the rest pays off unpaid bookings oldest-first
+    let pool = Number(b.amount);
+    let credits = 0, settled = 0;
+    const nPacks = Math.floor(pool / 110);
+    if (nPacks > 0) {
+      pool -= nPacks * 110; credits = nPacks * 4;
+      const newest = await D.prepare("SELECT id FROM classpacks WHERE user_id=?1 ORDER BY id DESC LIMIT 1").bind(b.user_id).first<any>();
+      if (newest) await D.prepare("UPDATE classpacks SET remaining = remaining + ?2 WHERE id=?1").bind(newest.id, credits).run();
+      else await D.prepare("INSERT INTO classpacks (user_id,size,remaining,note) VALUES (?1,?2,?2,'auto: payment')").bind(b.user_id, credits).run();
+    }
+    const usr = await D.prepare("SELECT email FROM users WHERE id=?1").bind(b.user_id).first<any>();
+    if (usr?.email && pool > 0) {
+      const em = usr.email.toLowerCase();
+      const og = (await D.prepare("SELECT id,date,time FROM opengym WHERE lower(email)=?1 AND paid=0 AND pay_method!='pack'").bind(em)
+        .all()).results.map((r: any) => ({ ...r, kind: "opengym", price: 10 }));
+      const cl = (await D.prepare(`SELECT s.id, s.date, c.time, c.title, c.category FROM signups s JOIN classes c ON c.id=s.class_id
+        WHERE lower(s.email)=?1 AND s.paid=0 AND s.pay_method!='pack'`).bind(em)
+        .all()).results.map((r: any) => ({ ...r, kind: "signups",
+          price: r.title === "Community Jam" ? 10 : (r.category === "flex" || r.category === "flow") ? 12 : 30 }));
+      const items = [...og, ...cl].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+      for (const it of items) {
+        if (pool < it.price) continue;
+        await D.prepare(`UPDATE ${it.kind} SET paid=1 WHERE id=?1`).bind(it.id).run();
+        pool -= it.price; settled++;
+      }
+    }
+    return json({ ok: true, credits_added: credits, bookings_settled: settled, leftover: pool });
   } else if (b.op === "edit_payment") {
     await D.prepare("UPDATE payments SET amount=COALESCE(?2,amount), method=COALESCE(?3,method), date=COALESCE(?4,date), note=COALESCE(?5,note) WHERE id=?1")
       .bind(b.id, b.amount ?? null, b.method ?? null, b.date ?? null, b.note ?? null).run();

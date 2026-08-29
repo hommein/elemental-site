@@ -429,7 +429,7 @@ function TallyTab() {
         const owes = (pack && pack.remaining < 0) || unpaid(p).length > 0;
         const smsBody = encodeURIComponent(
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
-          (pack ? ` Your class pack has ${pack.remaining} of ${pack.size} classes left.` : "") +
+          (pack ? ` Your class pack has ${pack.remaining} classes left.` : "") +
           (owes ? ` Please Venmo Katelyn (note: "Aerial") or bring cash for the balance. ${VENMO}` : " You're all set!"));
         const fmtD = (d: string) => new Date(d + "T00:00:00Z").toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
         const fmtT = (t: string) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
@@ -453,7 +453,7 @@ function TallyTab() {
               <span className="ml-auto flex items-center gap-2">
                 <span className="text-sm font-semibold">{taken} visit{taken === 1 ? "" : "s"} this {scale}</span>
                 <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
-                  {pack ? `pack ${pack.remaining}/${pack.size}` : "no pack"}
+                  {pack ? `pack ${pack.remaining}` : "no pack"}
                 </span>
                 {owes && <details className="relative">
                   <summary className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700 cursor-pointer list-none select-none">owes ▾</summary>
@@ -488,7 +488,7 @@ function TallyTab() {
               <div>
                 <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Pack & payments</div>
                 <div className="text-sm flex flex-wrap items-center gap-2">
-                  {pack ? <span>Pack: <b>{pack.remaining}/{pack.size}</b> left</span> : <em className="opacity-60">no class pack</em>}
+                  {pack ? <span>Pack: <b>{pack.remaining}</b> left</span> : <em className="opacity-60">no class pack</em>}
                   {pack && p.id && <>
                     <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: -1 })}>−1</button>
                     <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: pack.id, delta: 1 })}>+1</button>
