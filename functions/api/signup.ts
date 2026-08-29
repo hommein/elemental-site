@@ -33,11 +33,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let packLeft: number | null = null;
   if (pay_method === "pack") {
     const u: any = await env.DB.prepare("SELECT id FROM users WHERE email=?1").bind(em).first();
-    const pack: any = u && await env.DB.prepare(
+    // oldest pack with balance first; otherwise newest pack (balance may go negative
+    // — studio records Venmo payments late, so members can book ahead of the update)
+    const pack: any = u && (await env.DB.prepare(
       "SELECT id, remaining FROM classpacks WHERE user_id=?1 AND remaining>0 ORDER BY purchased_at ASC, id ASC LIMIT 1"
-    ).bind(u.id).first();
+    ).bind(u.id).first() || await env.DB.prepare(
+      "SELECT id, remaining FROM classpacks WHERE user_id=?1 ORDER BY purchased_at DESC, id DESC LIMIT 1"
+    ).bind(u.id).first());
     if (!pack) return err(u
-      ? "No class pack with remaining classes on your account — choose Venmo or cash, or ask the studio to add your pack."
+      ? "No class pack on your account yet — choose Venmo or cash, or ask the studio to add your pack."
       : "Class packs are tied to an account — sign in with this email first, or choose Venmo or cash.", 402);
     packId = pack.id;
     packLeft = pack.remaining - 1;
@@ -51,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     throw e;
   }
   if (packId != null)
-    await env.DB.prepare("UPDATE classpacks SET remaining = remaining-1 WHERE id=?1 AND remaining>0").bind(packId).run();
+    await env.DB.prepare("UPDATE classpacks SET remaining = remaining-1 WHERE id=?1").bind(packId).run();
 
   return Response.json({ ok: true, spots_left: cls.capacity - cnt.n - 1, pack_remaining: packLeft });
 };

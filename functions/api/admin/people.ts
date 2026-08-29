@@ -49,7 +49,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     if (!b.user_id || !(b.size > 0)) return json({ error: "user_id + size" }, 400);
     await D.prepare("INSERT INTO classpacks (user_id,size,remaining,note) VALUES (?1,?2,?2,?3)").bind(b.user_id, b.size, b.note || null).run();
   } else if (b.op === "adjust_pack") {
-    await D.prepare("UPDATE classpacks SET remaining = MAX(0, MIN(size, remaining + ?2)) WHERE id=?1").bind(b.id, b.delta | 0).run();
+    await D.prepare("UPDATE classpacks SET remaining = MIN(size, remaining + ?2) WHERE id=?1").bind(b.id, b.delta | 0).run();
   } else if (b.op === "delete_pack") {
     await D.prepare("DELETE FROM classpacks WHERE id=?1").bind(b.id).run();
   } else if (b.op === "add_payment") {

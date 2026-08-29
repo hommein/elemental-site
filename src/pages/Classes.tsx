@@ -431,9 +431,10 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
       setAdm(!!u.is_admin);
       setName(n => n || u.name); setEmail(e => e || u.email);
       fetch("/api/pack").then(r => r.ok ? r.json() : null).then(j => {
-        const left = j?.packs?.reduce((a: number, p: any) => a + p.remaining, 0) ?? 0;
+        if (!j?.packs?.length) return;
+        const left = j.packs.reduce((a: number, p: any) => a + p.remaining, 0);
         setPackLeft(left);
-        if (left > 0) setPay(p => p || "pack");
+        setPay(p => p || "pack");
       }).catch(() => {});
     });
   }, []);
@@ -451,7 +452,9 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
     if (r.ok) {
       setState("done");
       setMsg(`You're in! ${j.spots_left} spot${j.spots_left === 1 ? "" : "s"} left.` +
-        (j.pack_remaining != null ? ` ${j.pack_remaining} class${j.pack_remaining === 1 ? "" : "es"} left in your pack.` : ""));
+        (j.pack_remaining != null ? (j.pack_remaining < 0
+          ? ` Your pack balance is ${j.pack_remaining} — it will top back up when your next pack payment is recorded.`
+          : ` ${j.pack_remaining} class${j.pack_remaining === 1 ? "" : "es"} left in your pack.`) : ""));
     }
     else { setState("idle"); setMsg(j.error || "Something went wrong."); }
   }
@@ -489,10 +492,10 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
               className="border border-black/20 rounded-lg px-3 py-2" />
             <fieldset className="flex flex-col gap-1.5 text-sm">
               <legend className="font-medium mb-1">How are you paying?</legend>
-              {packLeft != null && packLeft > 0 && (
+              {packLeft != null && (
                 <label className="flex items-center gap-2">
                   <input type="radio" name="pay" checked={pay === "pack"} onChange={() => setPay("pack")} required />
-                  Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left)</span>
+                  Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left{packLeft <= 0 ? " — ok to book, settle up via Venmo" : ""})</span>
                 </label>
               )}
               <label className="flex items-center gap-2">

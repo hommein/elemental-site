@@ -275,7 +275,7 @@ function TallyTab() {
         const by = (m: string) => cls.filter((c: any) => c.pay_method === m).length;
         const owing = ppl.filter(p => { const t = p.classes.length + p.opengym.length;
           const pk = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
-          return t > 0 && (!pk || pk.remaining < t); }).length;
+          return (pk && pk.remaining < 0) || (t > 0 && (!pk || pk.remaining < t)); }).length;
         const paysIn = ppl.flatMap(p => p.payments || []).filter((x: any) => inR(x.date));
         const paid = paysIn.reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const packsSold = ppl.flatMap(p => p.packs || []).filter((k: any) => inR((k.purchased_at || "").slice(0, 10))).length;
@@ -339,7 +339,7 @@ function TallyTab() {
         const qq = norm(q.trim());
         const tk = (p: any) => p.classes.length + p.opengym.length;
         const pkRem = (p: any) => { const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return k ? k.remaining : 9999; };
-        const owesF = (p: any) => { const t = tk(p); const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return t > 0 && (!k || k.remaining < t); };
+        const owesF = (p: any) => { const t = tk(p); const k = p.packs.find((k: any) => k.remaining > 0) || p.packs[0]; return (k && k.remaining < 0) || (t > 0 && (!k || k.remaining < t)); };
         const paidT = (p: any) => (p.payments || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
         const cmp: Record<string, (a: any, b: any) => number> = {
           active: (a, b) => tk(b) - tk(a),
@@ -356,7 +356,7 @@ function TallyTab() {
         return shown.map((p: any) => {
         const taken = p.classes.length + p.opengym.length;
         const pack = p.packs.find((k: any) => k.remaining > 0) || p.packs[0];
-        const owes = taken > 0 && (!pack || pack.remaining < taken);
+        const owes = (pack && pack.remaining < 0) || (taken > 0 && (!pack || pack.remaining < taken));
         const smsBody = encodeURIComponent(
           `Hi ${p.name?.split(" ")[0] || ""}! This ${scale} at Elemental you took ${taken} class${taken === 1 ? "" : "es"}.` +
           (pack ? ` Your class pack has ${pack.remaining} of ${pack.size} classes left.` : "") +

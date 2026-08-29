@@ -121,7 +121,8 @@ function PackBox() {
     <div className="border border-ea-accent/40 rounded p-4 text-sm">
       <h2 className="font-serif text-lg mb-1">Class Pack & Payments</h2>
       {pack
-        ? <p>You have <b>{pack.remaining}</b> of <b>{pack.size}</b> classes left in your pack.</p>
+        ? <p>You have <b>{pack.remaining}</b> of <b>{pack.size}</b> classes left in your pack.{pack.remaining < 0 &&
+            <span className="block text-sm text-ea-brown mt-1">A negative balance just means you booked ahead of a payment being recorded — settle up via Venmo below.</span>}</p>
         : <p>No class pack on file — pay per class, or ask at the studio about packs.</p>}
       {(d.payments || []).length > 0 &&
         <p className="opacity-70 mt-1">Last payment: ${d.payments[0].amount} ({d.payments[0].method}, {d.payments[0].date})</p>}
