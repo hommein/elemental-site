@@ -131,7 +131,7 @@ function StackBars({ rows, series, labels, money }: {
   const n = rows.length, bw = 100 / n;
   const fmt = (v: number) => money ? "$" + Math.round(v) : String(Math.round(v));
   return (<div>
-    <svg viewBox="0 0 100 46" className="w-full" preserveAspectRatio="none">
+    <svg viewBox="0 -5 100 51" className="w-full" preserveAspectRatio="none">
       {rows.map((r, i) => { let y = 40; return r.map((v, j) => {
         const h = (v / max) * 36; y -= h;
         return <rect key={i + "-" + j} x={i * bw + bw * 0.15} y={y} width={bw * 0.7} height={h} fill={series[j].color} rx="0.6" />;
@@ -199,10 +199,6 @@ function TrendsTab() {
       </ChartCard>
       <ChartCard title="Payments logged per week ($)">
         <StackBars rows={wk.map(w => [w.revenue])} labels={wl} money series={[{ name: "$", color: CH.green }]} />
-      </ChartCard>
-      <ChartCard title="New students & packs sold per week">
-        <StackBars rows={wk.map(w => [w.new_users, w.packs])} labels={wl}
-          series={[{ name: "new accounts", color: CH.sky }, { name: "packs sold", color: CH.olive }]} />
       </ChartCard>
       <ChartCard title="Most popular classes (90 days)">
         <HBars items={(st.topClasses || []).map((t: any) => ({ label: t.title, n: t.n, color: GCOLOR[t.group] }))} color={CH.gold} />
