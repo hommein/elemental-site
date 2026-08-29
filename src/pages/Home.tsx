@@ -2,7 +2,7 @@ export default function Home() {
   return (
     <>
       <section
-        className="flex flex-col items-center justify-center text-center text-ea-paper px-4 py-12 aspect-[2000/850] bg-cover bg-no-repeat [background-position:28%_50%]"
+        className="flex flex-col items-center justify-center text-center text-ea-paper px-4 py-12 aspect-[2000/850] max-md:aspect-auto max-md:min-h-[430px] max-md:py-16 bg-cover bg-no-repeat [background-position:28%_50%]"
         style={{ backgroundImage: "linear-gradient(rgba(21,21,21,0.4), rgba(75,61,52,0.5)), url(/hero.jpg)" }}
       >
         <h1 className="text-ea-paper">Aerial Arts · Dance · Flow</h1>

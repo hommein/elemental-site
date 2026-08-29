@@ -492,7 +492,7 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
   const isDon = cls.pricing === "donation";
   if (isExt) return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => onClose(false)}>
-      <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-xl p-6 max-md:p-4 w-full max-w-sm shadow-xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="font-serif text-2xl mb-1">{cls.title}</h3>
         <p className="text-sm text-ea-espresso/70 mb-3">
           {DAYS[cls.day]} {prettyDate(cls.date)} at {fmt(cls.time)}{cls.instructor ? ` with ${cls.instructor}` : ""}
@@ -554,7 +554,7 @@ ${cls.pay_note}` : ""}
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
       onClick={() => onClose(state === "done")}>
-      <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-xl p-6 max-md:p-4 w-full max-w-sm shadow-xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="font-serif text-2xl mb-1">{cls.title}</h3>
         <p className="text-sm text-ea-espresso/70 mb-4">
           {DAYS[cls.day]} {prettyDate(cls.date)} at {fmt(cls.time)}
