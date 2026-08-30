@@ -404,6 +404,7 @@ function TallyTab() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [pmEdit, setPmEdit] = useState<{ id: number; amount: string; method: string; date: string } | null>(null);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("active");
   const range = () => {
@@ -744,16 +745,24 @@ function TallyTab() {
                       {pm.unallocated > 0 && <span className="text-[10px] px-1.5 py-px rounded-full font-semibold bg-ea-gold/40 text-ea-olive" title="Not yet applied to a pack or booking">${pm.unallocated.toFixed(2)} unallocated</span>}
                       {pm.note && <span className="text-xs opacity-60 truncate">{pm.note}</span>}
                       <span className="ml-auto flex gap-1">
-                        <button className="text-xs underline opacity-60 hover:opacity-100" disabled={busy} onClick={() => {
-                          const a = prompt("Amount ($)?", String(pm.amount)); if (a === null) return;
-                          const m = prompt("Method? (venmo/cash)", pm.method) || pm.method;
-                          const d = prompt("Date (YYYY-MM-DD)?", pm.date) || pm.date;
-                          post({ op: "edit_payment", id: pm.id, amount: +a, method: m, date: d });
-                        }}>edit</button>
+                        <button className="text-xs underline opacity-60 hover:opacity-100" disabled={busy}
+                          onClick={() => setPmEdit(e => e?.id === pm.id ? null : { id: pm.id, amount: String(pm.amount), method: pm.method, date: pm.date })}>edit</button>
                         <button className="text-xs underline text-red-700/70 hover:text-red-700" disabled={busy} onClick={() => {
                           if (confirm(`Delete $${pm.amount} ${pm.method} payment on ${pm.date}?`)) post({ op: "delete_payment", id: pm.id });
                         }}>delete</button>
                       </span>
+                      {pmEdit?.id === pm.id && (
+                        <span className="w-full flex flex-wrap items-center gap-1.5 py-1">
+                          $<input className="w-20 rounded border border-ea-espresso/25 px-1.5 py-0.5 text-sm" value={pmEdit.amount} onChange={e => setPmEdit({ ...pmEdit, amount: e.target.value })} />
+                          <select className="rounded border border-ea-espresso/25 px-1 py-0.5 text-sm" value={pmEdit.method} onChange={e => setPmEdit({ ...pmEdit, method: e.target.value })}>
+                            <option value="venmo">venmo</option><option value="cash">cash</option>
+                          </select>
+                          <input type="date" className="rounded border border-ea-espresso/25 px-1.5 py-0.5 text-sm" value={pmEdit.date} onChange={e => setPmEdit({ ...pmEdit, date: e.target.value })} />
+                          <button className="btn !py-0.5 !px-2.5 text-xs" disabled={busy || !(+pmEdit.amount >= 0)}
+                            onClick={async () => { await post({ op: "edit_payment", id: pm.id, amount: +pmEdit.amount, method: pmEdit.method, date: pmEdit.date }); setPmEdit(null); }}>save</button>
+                          <button className="text-xs underline opacity-60" onClick={() => setPmEdit(null)}>cancel</button>
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>}
