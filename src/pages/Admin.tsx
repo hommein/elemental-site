@@ -119,6 +119,8 @@ async function api(body: any) {
 function EditPanel({ c, b, day, dates, names, onDone, onClose }:
   { c: any; b: any; day: number; dates: string[]; names: (k: string) => string[]; onDone: (m: string) => void; onClose: () => void }) {
   const adding = !c;
+  const alpha = (k: string) => names(k).map(String).sort((a, b) => a.localeCompare(b));
+  const num = (k: string) => [...new Set(names(k).map(Number).filter(n => !isNaN(n)))].sort((a, b) => a - b).map(String);
   const [f, setF] = useState<any>(() => adding
     ? { title: "", instructor: "", time: "16:00", duration_min: 60, capacity: 8, room: "Sun Room", category: "aerial", pricing: "dropin", price: "", day, scope: "always" }
     : { title: c.title, instructor: c.instructor || "", time: c.time, duration_min: c.duration_min, capacity: c.capacity, room: c.room,
@@ -170,21 +172,26 @@ function EditPanel({ c, b, day, dates, names, onDone, onClose }:
         <button className="ml-auto text-sm underline text-ea-espresso/60" onClick={onClose}>close</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
-        {F("Class name", <input className={inp("title")} value={f.title} onChange={set("title")} />, "col-span-2")}
+        {F("Class name", <><input className={inp("title")} list="ea-title" value={f.title} onChange={set("title")} />
+          <datalist id="ea-title">{alpha("title").map(n => <option key={n} value={n} />)}</datalist></>, "col-span-2")}
         {F("Instructor", <><input className={inp("instructor")} list="ea-instr" value={f.instructor} onChange={set("instructor")} />
-          <datalist id="ea-instr">{names("instructor").map(n => <option key={n} value={n} />)}</datalist></>)}
+          <datalist id="ea-instr">{alpha("instructor").map(n => <option key={n} value={n} />)}</datalist></>)}
         {F("Day", <select className={inp("day")} value={f.day} onChange={set("day")} disabled={!adding && !b?.on_date}>
           {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}</select>)}
-        {F("Start time", <input type="time" className={inp("time")} value={f.time} onChange={set("time")} />)}
-        {F("Minutes", <input type="number" step="15" className={inp("duration_min")} value={f.duration_min} onChange={set("duration_min")} />)}
-        {F("Capacity", <input type="number" className={inp("capacity")} value={f.capacity} onChange={set("capacity")} />)}
+        {F("Start time", <><input type="time" className={inp("time")} list="ea-time" value={f.time} onChange={set("time")} />
+          <datalist id="ea-time">{alpha("time").map(n => <option key={n} value={n} />)}</datalist></>)}
+        {F("Minutes", <><input type="number" step="15" className={inp("duration_min")} list="ea-dur" value={f.duration_min} onChange={set("duration_min")} />
+          <datalist id="ea-dur">{num("duration_min").map(n => <option key={n} value={n} />)}</datalist></>)}
+        {F("Capacity", <><input type="number" className={inp("capacity")} list="ea-cap" value={f.capacity} onChange={set("capacity")} />
+          <datalist id="ea-cap">{num("capacity").map(n => <option key={n} value={n} />)}</datalist></>)}
         {F("Room", <><input className={inp("room")} list="ea-room" value={f.room} onChange={set("room")} />
-          <datalist id="ea-room">{names("room").map(n => <option key={n} value={n} />)}</datalist></>)}
+          <datalist id="ea-room">{alpha("room").map(n => <option key={n} value={n} />)}</datalist></>)}
         {F("Category", <><input className={inp("category")} list="ea-cat" value={f.category} onChange={set("category")} />
-          <datalist id="ea-cat">{names("category").map(n => <option key={n} value={n} />)}</datalist></>)}
+          <datalist id="ea-cat">{alpha("category").map(n => <option key={n} value={n} />)}</datalist></>)}
         {F("Payment", <select className={inp("pricing")} value={f.pricing} onChange={set("pricing")}>
           <option value="dropin">standard (packs ok)</option><option value="donation">donation</option><option value="external">paid to instructor</option></select>)}
-        {F("Price $ (blank = default)", <input type="number" className={inp("price")} value={f.price} onChange={set("price")} />)}
+        {F("Price $ (blank = default)", <><input type="number" className={inp("price")} list="ea-price" value={f.price} onChange={set("price")} />
+          <datalist id="ea-price">{num("price").map(n => <option key={n} value={n} />)}</datalist></>)}
         {adding && F("Repeats", <select className={inp("scope")} value={f.scope} onChange={set("scope")}>
           <option value="always">every week</option><option value="once">this week only</option></select>)}
       </div>
