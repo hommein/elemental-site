@@ -5,6 +5,19 @@ type Ev = {
 
 const FEATURED: Ev[] = [
   {
+    img: "/events/tango.jpg",
+    title: "The Stranger & Beethoven’s Tango",
+    date: "2026-09-11",
+    when: "Friday, September 11th",
+    where: "Lobero Theatre",
+    body: [
+      "Catch a few of our featured aerialists in Meredith Ventura’s newest work, The Stranger. Performed alongside Fernanda Ghi and Alfredo Minetti’s brand-new work Beethoven’s Tango, this evening brings together two works concerned with the artist’s inner world and the forces that shape expression.",
+      "Beethoven’s Tango merges dance and live music into a singular theatrical experience.",
+      "Together, The Stranger and Beethoven’s Tango ask what it means to create, to be seen, and to remain human in a world that often misunderstands the depths of feeling.",
+    ],
+    links: [{ label: "Get Tickets", url: "https://selah.dance/" }],
+  },
+  {
     img: "/events/pride.jpeg",
     title: "Santa Barbara Pride Festival",
     date: "2026-08-22",
@@ -27,19 +40,6 @@ const FEATURED: Ev[] = [
       "6–7pm — Open Hang / Jam Time: bounce ideas with your friends, show a friend a new apparatus, come hang. We will have all sorts of apparatuses up. Newcomers welcome!",
       "7–8pm — In-House Studio Showcase: feeling called to share what you love? Here's a chance to do just that in a relaxed and supportive environment. Share a polished piece, freestyle, or simply cheer others on. Works in progress, silly, or serious — all are welcome in this safe space to test ideas! Your act does NOT need to be aerial: dance, flow, and \"circus other\" welcomed!",
     ],
-  },
-  {
-    img: "/events/tango.jpg",
-    title: "The Stranger & Beethoven’s Tango",
-    date: "2026-09-11",
-    when: "Friday, September 11th",
-    where: "Lobero Theatre",
-    body: [
-      "Catch a few of our featured aerialists in Meredith Ventura’s newest work, The Stranger. Performed alongside Fernanda Ghi and Alfredo Minetti’s brand-new work Beethoven’s Tango, this evening brings together two works concerned with the artist’s inner world and the forces that shape expression.",
-      "Beethoven’s Tango merges dance and live music into a singular theatrical experience.",
-      "Together, The Stranger and Beethoven’s Tango ask what it means to create, to be seen, and to remain human in a world that often misunderstands the depths of feeling.",
-    ],
-    links: [{ label: "Get Tickets", url: "https://selah.dance/" }],
   },
   {
     img: "/events/bloom.jpg",
