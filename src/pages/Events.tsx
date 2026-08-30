@@ -1,5 +1,5 @@
 type Ev = {
-  img: string; title: string; when?: string; where?: string;
+  img: string; title: string; when?: string; where?: string; date?: string;
   body: string[]; links?: { label: string; url: string }[];
 };
 
@@ -7,6 +7,7 @@ const FEATURED: Ev[] = [
   {
     img: "/events/pride.jpeg",
     title: "Santa Barbara Pride Festival",
+    date: "2026-08-22",
     when: "Saturday, Aug 22nd · 12–6pm",
     where: "Chase Palm Park",
     body: [
@@ -18,6 +19,7 @@ const FEATURED: Ev[] = [
   {
     img: "/events/showcase.png",
     title: "In-House Showcase & Jam",
+    date: "2026-07-31",
     when: "Friday, July 31st · 6–8pm",
     where: "Elemental Arts Studio",
     body: [
@@ -29,7 +31,8 @@ const FEATURED: Ev[] = [
   {
     img: "/events/holiday.png",
     title: "Elemental Arts Holiday Party",
-    when: "Thursday, December 18th · 8–10pm",
+    date: "2026-12-18",
+    when: "Friday, December 18th · 8–10pm",
     where: "Elemental Arts Studio",
     body: [
       "Let's celebrate the season together — off the ground and in good company! We'll have silks, lyra, straps, and hammock all hung up for open jam time, plus games, treats, and a chance to perform if you'd like!",
@@ -39,6 +42,7 @@ const FEATURED: Ev[] = [
   {
     img: "/events/bloom.jpg",
     title: "Elemental Bloom — Spring Showcase ft. Pyrokitten Conclave",
+    date: "2025-05-29",
     when: "Thursday, May 29th · Doors 7pm, Show 7:30–9pm",
     where: "Buena Onda SB",
     body: [
@@ -53,6 +57,7 @@ const FEATURED: Ev[] = [
   {
     img: "/events/wildflowers.jpeg",
     title: "Wildflowers: A Story Told Through Aerial, Circus, and Dance",
+    date: "2024-06-01",
     when: "Past Production",
     body: [
       "With a special prequel by Paper Doll Militia & Circus with a Purpose. How do art & movement help us to heal? Seen through the lens of aerial, circus, and dance arts, our artists navigate the body's natural survival responses: fight, flight, freeze and fawn.",
@@ -66,10 +71,10 @@ const FEATURED: Ev[] = [
 ];
 
 const SHOWS = [
-  { when: "April 25th, 2026", title: "Santa Barbara Earth Day", text: "Find our aerialists flying high in Alameda Park for Santa Barbara's Earth Day Festival!", url: "https://www.sbearthday.org/" },
-  { when: "June 20th, 2026", title: "Santa Barbara Summer Solstice Festival", text: "Find our flyers performing alongside the music at the mainstage in Alameda Park!", url: "https://www.solsticeparade.com/" },
-  { when: "August 23rd, 2025", title: "Pacific Pride at the Beach Festival", text: "Hang with us at Cabrillo Beach Park 11am–7pm. A free event celebrating the beauty, art, and creativity LGBTQ+ individuals bring to the world.", url: "https://pacificpridefoundation.org/summer-of-pride/pacific-pride-festival/" },
-  { when: "October 2025", title: "Boo at the Zoo", text: "Every night 5–8pm at the Santa Barbara Zoo's \"spell-a-bration\"! Six nights of Halloween spirit, trick-or-treating for kids, tasty treats and boo-zy adult beverages.", url: "https://www.sbzoo.org/boo-at-the-zoo/" },
+  { date: "2026-04-25", when: "April 25th, 2026", title: "Santa Barbara Earth Day", text: "Find our aerialists flying high in Alameda Park for Santa Barbara's Earth Day Festival!", url: "https://www.sbearthday.org/" },
+  { date: "2026-06-20", when: "June 20th, 2026", title: "Santa Barbara Summer Solstice Festival", text: "Find our flyers performing alongside the music at the mainstage in Alameda Park!", url: "https://www.solsticeparade.com/" },
+  { date: "2025-08-23", when: "August 23rd, 2025", title: "Pacific Pride at the Beach Festival", text: "Hang with us at Cabrillo Beach Park 11am–7pm. A free event celebrating the beauty, art, and creativity LGBTQ+ individuals bring to the world.", url: "https://pacificpridefoundation.org/summer-of-pride/pacific-pride-festival/" },
+  { date: "2025-10-31", when: "October 2025", title: "Boo at the Zoo", text: "Every night 5–8pm at the Santa Barbara Zoo's \"spell-a-bration\"! Six nights of Halloween spirit, trick-or-treating for kids, tasty treats and boo-zy adult beverages.", url: "https://www.sbzoo.org/boo-at-the-zoo/" },
 ];
 
 const RETREATS: Ev[] = [
@@ -102,12 +107,28 @@ const FAVES = [
   ["October", "Boo at the Zoo"],
 ];
 
+const todayPT = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+
+function Tag({ date, dark }: { date?: string; dark?: boolean }) {
+  if (!date) return null;
+  const past = date < todayPT;
+  const cls = past
+    ? (dark ? "bg-white/10 text-ea-paper/60" : "bg-ea-espresso/10 text-ea-espresso/60")
+    : "bg-ea-gold text-ea-espresso";
+  return (
+    <span className={"inline-block rounded-full px-3 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] " + cls}>
+      {past ? "Past" : "Upcoming"}
+    </span>
+  );
+}
+
 function EventSplit({ ev, flip }: { ev: Ev; flip: boolean }) {
   return (
     <div className="container grid md:grid-cols-2 gap-10 items-center">
       <img src={ev.img} alt={ev.title} loading="lazy"
         className={"rounded-[10px] w-full max-w-[440px] mx-auto shadow-sm max-md:order-first" + (flip ? " md:order-last" : "")} />
       <div>
+        {ev.date && <div className="mb-2"><Tag date={ev.date} /></div>}
         <h2 className="text-ea-accent mt-0 mb-1">{ev.title}</h2>
         {ev.when && <p className="font-semibold m-0">{ev.when}</p>}
         {ev.where && <p className="m-0 text-ea-espresso/70">{ev.where}</p>}
@@ -150,7 +171,10 @@ export default function Events() {
             {SHOWS.map(s => (
               <a key={s.title} href={s.url} target="_blank" rel="noreferrer"
                 className="rounded-[10px] bg-white/5 border border-white/10 p-5 text-ea-paper no-underline hover:bg-white/10 transition-colors">
-                <div className="text-ea-gold font-semibold text-sm">{s.when}</div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-ea-gold font-semibold text-sm">{s.when}</span>
+                  <Tag date={s.date} dark />
+                </div>
                 <div className="text-lg font-semibold mt-1">{s.title}</div>
                 <p className="text-ea-paper/75 text-sm mt-2 mb-0">{s.text}</p>
               </a>
