@@ -19,16 +19,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const now = Date.now();
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
 
+  const past = new URL(request.url).searchParams.get("past") === "1";
+  const cmp = past ? "<" : ">=";
   const cls = await env.DB.prepare(
     `SELECT s.id, s.date, c.title, c.instructor, c.time, c.duration_min, c.room
      FROM signups s JOIN classes c ON c.id = s.class_id
-     WHERE s.email = ?1 AND s.date >= ?2 ORDER BY s.date, c.time`
+     WHERE s.email = ?1 AND s.date ${cmp} ?2 ORDER BY s.date, c.time`
   ).bind(email, today).all();
   const og = await env.DB.prepare(
-    `SELECT id, date, time, room FROM opengym WHERE email = ?1 AND date >= ?2 ORDER BY date, time`
+    `SELECT id, date, time, room FROM opengym WHERE email = ?1 AND date ${cmp} ?2 ORDER BY date, time`
   ).bind(email, today).all();
 
-  const classes = (cls.results as any[]).map(r => ({ ...r, kind: "class", can_cancel: ptEpoch(r.date, r.time) - now >= CUTOFF_MS }));
-  const opengym = (og.results as any[]).map(r => ({ ...r, kind: "opengym", title: "Open Gym", can_cancel: ptEpoch(r.date, r.time) - now >= CUTOFF_MS }));
-  return json({ bookings: [...classes, ...opengym].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)) });
+  const classes = (cls.results as any[]).map(r => ({ ...r, kind: "class", can_cancel: !past && ptEpoch(r.date, r.time) - now >= CUTOFF_MS }));
+  const opengym = (og.results as any[]).map(r => ({ ...r, kind: "opengym", title: "Open Gym", can_cancel: !past && ptEpoch(r.date, r.time) - now >= CUTOFF_MS }));
+  let all = [...classes, ...opengym].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  if (past) all = all.reverse().slice(0, 100);
+  return json({ bookings: all });
 };

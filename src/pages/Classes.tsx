@@ -289,13 +289,14 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [changed, setChanged] = useState(false);
+  const [past, setPast] = useState(false);
 
   useEffect(() => { me().then(u => { if (u) { setEmail(u.email); load(undefined, u.email); } }); }, []);
 
-  async function load(e?: React.FormEvent, em?: string) {
+  async function load(e?: React.FormEvent, em?: string, p?: boolean) {
     e?.preventDefault();
     setBusy(true); setMsg("");
-    const r = await fetch("/api/bookings?email=" + encodeURIComponent((em ?? email).trim()));
+    const r = await fetch("/api/bookings?email=" + encodeURIComponent((em ?? email).trim()) + ((p ?? past) ? "&past=1" : ""));
     const j = await r.json();
     setBusy(false);
     if (!r.ok) { setMsg(j.error || "Something went wrong."); return; }
@@ -330,7 +331,7 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
         </form>
         {msg && <p className="text-sm text-red-700 mb-3">{msg}</p>}
         {rows && (rows.length === 0
-          ? <p className="text-sm text-ea-espresso/60">No upcoming bookings for that email.</p>
+          ? <p className="text-sm text-ea-espresso/60">No {past ? "past" : "upcoming"} bookings for that email.</p>
           : <div className="flex flex-col gap-1.5">
               {rows.map(b => (
                 <div key={b.kind + b.id} className="border border-black/10 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
@@ -345,6 +346,12 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
                 </div>
               ))}
             </div>)}
+        {rows && (
+          <button className="text-sm underline text-ea-olive mt-3"
+            onClick={() => { const p = !past; setPast(p); setRows(null); load(undefined, undefined, p); }}>
+            {past ? "\u2039 Back to upcoming bookings" : "Show past bookings"}
+          </button>
+        )}
         <button className="btn w-full mt-4" onClick={() => onClose(changed)}>Close</button>
       </div>
     </div>
