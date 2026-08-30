@@ -37,7 +37,7 @@ export default function Home() {
 
       <section className="bg-ea-cream">
         <div className="container grid md:grid-cols-2 gap-10 items-center">
-          <img src="/dancewithus.jpg" alt="Aerialist posing on sling" loading="lazy" className="rounded-[10px] w-full" />
+          <img src="/dancewithus.jpg" alt="Aerialist posing on sling" loading="lazy" className="rounded-[10px] w-auto max-h-[440px] mx-auto" />
           <div>
             <h2 className="mt-0 mb-4">Dance With Us!</h2>
             <p className="mb-4">Aerial is a dance form, a workout, an avenue for self-expression &amp;
