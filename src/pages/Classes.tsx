@@ -317,6 +317,23 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
     load();
   }
 
+  function bkRow(b: Bk) {
+    return (
+      <div key={b.kind + b.id} className="border border-black/10 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-medium truncate">{b.title}{b.instructor ? ` \u00b7 ${b.instructor}` : ""}</div>
+          <div className="text-xs text-ea-espresso/60">{prettyDate(b.date)} \u00b7 {fmt(b.time)}</div>
+        </div>
+        {b.can_cancel
+          ? <button className="text-sm underline text-red-700 whitespace-nowrap" disabled={busy}
+              onClick={() => cancel(b)}>Cancel</button>
+          : past
+          ? null
+          : <a href="sms:+18053642037" className="text-xs text-ea-espresso/60 whitespace-nowrap underline">&lt;12h \u2014 text (805)&nbsp;364-2037</a>}
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => onClose(changed)}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -332,20 +349,34 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
         {msg && <p className="text-sm text-red-700 mb-3">{msg}</p>}
         {rows && (rows.length === 0
           ? <p className="text-sm text-ea-espresso/60">No {past ? "past" : "upcoming"} bookings for that email.</p>
-          : <div className="flex flex-col gap-1.5">
-              {rows.map(b => (
-                <div key={b.kind + b.id} className="border border-black/10 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{b.title}{b.instructor ? ` · ${b.instructor}` : ""}</div>
-                    <div className="text-xs text-ea-espresso/60">{prettyDate(b.date)} · {fmt(b.time)}</div>
-                  </div>
-                  {b.can_cancel
-                    ? <button className="text-sm underline text-red-700 whitespace-nowrap" disabled={busy}
-                        onClick={() => cancel(b)}>Cancel</button>
-                    : <a href="sms:+18053642037" className="text-xs text-ea-espresso/60 whitespace-nowrap underline">&lt;12h — text (805)&nbsp;364-2037</a>}
+          : past
+          ? (() => {
+              const groups: { key: string; label: string; items: Bk[] }[] = [];
+              for (const b of rows) {
+                const key = b.date.slice(0, 7);
+                let g = groups[groups.length - 1];
+                if (!g || g.key !== key) {
+                  g = { key, label: new Date(b.date + "T00:00:00Z").toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }), items: [] };
+                  groups.push(g);
+                }
+                g.items.push(b);
+              }
+              return (
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs text-ea-espresso/60 -mb-1">{rows.length} visit{rows.length === 1 ? "" : "s"} on record{rows.length >= 100 ? " (showing latest 100)" : ""}</p>
+                  {groups.map(g => (
+                    <div key={g.key}>
+                      <div className="flex items-baseline justify-between mb-1">
+                        <span className="text-[11px] uppercase tracking-wide font-semibold text-ea-espresso/50">{g.label}</span>
+                        <span className="text-[11px] text-ea-espresso/40">{g.items.length} visit{g.items.length === 1 ? "" : "s"}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">{g.items.map(b => bkRow(b))}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>)}
+              );
+            })()
+          : <div className="flex flex-col gap-1.5">{rows.map(b => bkRow(b))}</div>)}
         {rows && (
           <button className="text-sm underline text-ea-olive mt-3"
             onClick={() => { const p = !past; setPast(p); setRows(null); load(undefined, undefined, p); }}>
