@@ -17,19 +17,19 @@ export default function Home() {
         <h2 className="mb-8">Weekly Group Classes &amp; Jams</h2>
         <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))]">
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[190px] object-cover" />
+            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[258px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Aerial Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Silks, Lyra, Hammock, Straps &amp; more — all levels welcome.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full h-[190px] object-cover" />
+            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full h-[258px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics &amp; Flexibility</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[190px] object-cover" />
+            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[258px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Dance</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full h-[190px] object-cover" />
+            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full h-[258px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Fire &amp; Flow Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Hoops, Fans, Rope Dart, Poi, Staff — cross-prop technique &amp; flow theory.</p>
           </div>
         </div>
