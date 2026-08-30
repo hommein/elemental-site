@@ -17,22 +17,24 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const email = (new URL(request.url).searchParams.get("email") || "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "Valid email required" }, 400);
   const now = Date.now();
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
-
   const past = new URL(request.url).searchParams.get("past") === "1";
-  const cmp = past ? "<" : ">=";
+
   const cls = await env.DB.prepare(
     `SELECT s.id, s.date, c.title, c.instructor, c.time, c.duration_min, c.room
      FROM signups s JOIN classes c ON c.id = s.class_id
-     WHERE s.email = ?1 AND s.date ${cmp} ?2 ORDER BY s.date, c.time`
-  ).bind(email, today).all();
+     WHERE s.email = ?1 ORDER BY s.date, c.time`
+  ).bind(email).all();
   const og = await env.DB.prepare(
-    `SELECT id, date, time, room FROM opengym WHERE email = ?1 AND date ${cmp} ?2 ORDER BY date, time`
-  ).bind(email, today).all();
+    `SELECT id, date, time, room FROM opengym WHERE email = ?1 ORDER BY date, time`
+  ).bind(email).all();
 
-  const classes = (cls.results as any[]).map(r => ({ ...r, kind: "class", can_cancel: !past && ptEpoch(r.date, r.time) - now >= CUTOFF_MS }));
-  const opengym = (og.results as any[]).map(r => ({ ...r, kind: "opengym", title: "Open Gym", can_cancel: !past && ptEpoch(r.date, r.time) - now >= CUTOFF_MS }));
-  let all = [...classes, ...opengym].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const classes = (cls.results as any[]).map(r => ({ ...r, kind: "class" }));
+  const opengym = (og.results as any[]).map(r => ({ ...r, kind: "opengym", title: "Open Gym", duration_min: 60 }));
+  let all = [...classes, ...opengym]
+    .map(r => ({ ...r, _end: ptEpoch(r.date, r.time) + (r.duration_min || 60) * 60000 }))
+    .filter(r => past ? r._end <= now : r._end > now)
+    .map(({ _end, ...r }) => ({ ...r, can_cancel: !past && ptEpoch(r.date, r.time) - now >= CUTOFF_MS }))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   if (past) all = all.reverse().slice(0, 100);
   return json({ bookings: all });
 };
