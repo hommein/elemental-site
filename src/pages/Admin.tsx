@@ -753,13 +753,13 @@ function TallyTab() {
                       </span>
                       {pmEdit?.id === pm.id && (
                         <span className="w-full flex flex-wrap items-center gap-1.5 py-1">
-                          $<input className="w-20 rounded border border-ea-espresso/25 px-1.5 py-0.5 text-sm" value={pmEdit.amount} onChange={e => setPmEdit({ ...pmEdit, amount: e.target.value })} />
-                          <select className="rounded border border-ea-espresso/25 px-1 py-0.5 text-sm" value={pmEdit.method} onChange={e => setPmEdit({ ...pmEdit, method: e.target.value })}>
+                          $<input className="w-20 rounded border border-ea-espresso/25 px-1.5 py-0.5 text-sm" value={pmEdit!.amount} onChange={e => setPmEdit({ ...pmEdit!, amount: e.target.value })} />
+                          <select className="rounded border border-ea-espresso/25 px-1 py-0.5 text-sm" value={pmEdit!.method} onChange={e => setPmEdit({ ...pmEdit!, method: e.target.value })}>
                             <option value="venmo">venmo</option><option value="cash">cash</option>
                           </select>
-                          <input type="date" className="rounded border border-ea-espresso/25 px-1.5 py-0.5 text-sm" value={pmEdit.date} onChange={e => setPmEdit({ ...pmEdit, date: e.target.value })} />
-                          <button className="btn !py-0.5 !px-2.5 text-xs" disabled={busy || !(+pmEdit.amount >= 0)}
-                            onClick={async () => { await post({ op: "edit_payment", id: pm.id, amount: +pmEdit.amount, method: pmEdit.method, date: pmEdit.date }); setPmEdit(null); }}>save</button>
+                          <input type="date" className="rounded border border-ea-espresso/25 px-1.5 py-0.5 text-sm" value={pmEdit!.date} onChange={e => setPmEdit({ ...pmEdit!, date: e.target.value })} />
+                          <button className="btn !py-0.5 !px-2.5 text-xs" disabled={busy || !(+pmEdit!.amount >= 0)}
+                            onClick={async () => { await post({ op: "edit_payment", id: pm.id, amount: +pmEdit!.amount, method: pmEdit!.method, date: pmEdit!.date }); setPmEdit(null); }}>save</button>
                           <button className="text-xs underline opacity-60" onClick={() => setPmEdit(null)}>cancel</button>
                         </span>
                       )}
