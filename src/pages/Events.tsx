@@ -70,28 +70,6 @@ export default function Events() {
         </section>
       ))}
 
-      {d && d.show.length > 0 && (
-        <section className="bg-ea-espresso">
-          <div className="container">
-            <h2 className="text-ea-paper text-center mt-0 mb-2">Upcoming Shows</h2>
-            <p className="text-ea-paper/80 text-center mb-8">Find our flyers at these upcoming local community events!</p>
-            <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))]">
-              {d.show.map(sh => (
-                <a key={sh.id} href={sh.links?.[0]?.url} target="_blank" rel="noreferrer"
-                  className="rounded-[10px] bg-white/5 border border-white/10 p-5 text-ea-paper no-underline hover:bg-white/10 transition-colors">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-ea-gold font-semibold text-sm">{sh.when_text}</span>
-                    <Tag date={sh.date} dark />
-                  </div>
-                  <div className="text-lg font-semibold mt-1">{sh.title}</div>
-                  <p className="text-ea-paper/75 text-sm mt-2 mb-0">{sh.body[0]}</p>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {d && d.retreat.length > 0 && (
         <>
           <section>

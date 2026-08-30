@@ -875,7 +875,7 @@ function TallyTab() {
 // ---------- Events & Posts tab ----------
 type Post = { id: number; section: string; title: string; date: string | null; when_text: string | null;
   where_text: string | null; img: string | null; body: string; links: string | null; sort_order: number; active: number };
-const P_SECTIONS: [string, string][] = [["featured", "Featured Events"], ["show", "Upcoming Shows"], ["retreat", "Retreats"], ["fave", "Fave Community Events"]];
+const P_SECTIONS: [string, string][] = [["featured", "Featured Events"], ["retreat", "Retreats"], ["fave", "Fave Community Events"]];
 const bodyToText = (j: string) => { try { return (JSON.parse(j || "[]") as string[]).join("\n\n"); } catch { return ""; } };
 const textToBody = (t: string) => JSON.stringify(t.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean));
 const linksToText = (j: string | null) => { try { return (JSON.parse(j || "[]") as any[]).map(l => `${l.label} | ${l.url}`).join("\n"); } catch { return ""; } };
