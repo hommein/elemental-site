@@ -116,6 +116,39 @@ async function api(body: any) {
   const j = await r.json(); if (!r.ok) throw new Error(j.error || "Failed"); return j;
 }
 
+function Combo({ value, onChange, options, cls, type, mode }:
+  { value: any; onChange: (v: string) => void; options: string[]; cls: string; type?: string; mode?: "numeric" | "decimal" }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (wrap.current && !wrap.current.contains(e.target as any)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  const shown = typed && String(value) ? options.filter(o => o.toLowerCase().includes(String(value).toLowerCase())) : options;
+  return (
+    <div ref={wrap} className="relative">
+      <input type={type || "text"} inputMode={mode} value={value}
+        className={`${cls} pr-7 ${type === "time" ? "[&::-webkit-calendar-picker-indicator]:hidden" : ""}`}
+        onChange={e => { setTyped(true); setOpen(true); onChange(e.target.value); }}
+        onFocus={() => { setTyped(false); setOpen(true); }} />
+      <button type="button" tabIndex={-1} aria-label="show options"
+        className="absolute right-0 top-0 bottom-0 px-2 text-ea-espresso/50 hover:text-ea-espresso"
+        onMouseDown={e => { e.preventDefault(); setTyped(false); setOpen(o => !o); }}>▾</button>
+      {open && shown.length > 0 && (
+        <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-black/15 rounded-lg shadow-lg max-h-44 overflow-auto">
+          {shown.map(o => (
+            <div key={o}
+              className={`px-2 py-1 text-sm cursor-pointer hover:bg-ea-cream ${String(value) === o ? "bg-ea-cream/70 font-medium" : ""}`}
+              onMouseDown={e => { e.preventDefault(); onChange(o); setOpen(false); }}>{o}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditPanel({ c, b, day, dates, names, onDone, onClose }:
   { c: any; b: any; day: number; dates: string[]; names: (k: string) => string[]; onDone: (m: string) => void; onClose: () => void }) {
   const adding = !c;
@@ -129,6 +162,7 @@ function EditPanel({ c, b, day, dates, names, onDone, onClose }:
   const [confirmDel, setConfirmDel] = useState(false);
   const past = !adding && c.date < today();
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
+  const setV = (k: string) => (v: string) => setF({ ...f, [k]: v });
   const dif = (k: string) => !adding && String(f[k] ?? "") !== String((k === "instructor" ? b[k] || "" : b[k]) ?? "");
   const inp = (k: string, extra = "") => `border rounded px-2 py-1 w-full ${dif(k) ? "border-ea-gold ring-2 ring-ea-gold/40 bg-ea-gold/10" : "border-black/20"} ${extra}`;
   const F = (label: string, el: React.ReactNode, w = "") => <label className={`flex flex-col gap-0.5 text-sm ${w}`}><span className="text-ea-espresso/60 text-xs">{label}</span>{el}</label>;
@@ -172,35 +206,28 @@ function EditPanel({ c, b, day, dates, names, onDone, onClose }:
         <button className="ml-auto text-sm underline text-ea-espresso/60" onClick={onClose}>close</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
-        {F("Class name", <><input className={inp("title")} list="ea-title" value={f.title} onChange={set("title")} />
-          <datalist id="ea-title">{alpha("title").map(n => <option key={n} value={n} />)}</datalist></>, "col-span-2")}
-        {F("Instructor", <><input className={inp("instructor")} list="ea-instr" value={f.instructor} onChange={set("instructor")} />
-          <datalist id="ea-instr">{alpha("instructor").map(n => <option key={n} value={n} />)}</datalist></>)}
-        {F("Day", <select className={inp("day")} value={f.day} onChange={set("day")} disabled={!adding && !b?.on_date}>
+        {F("Class name", <Combo cls={inp("title")} value={f.title} onChange={setV("title")} options={alpha("title")} />, "col-span-2")}
+        {F("Instructor", <Combo cls={inp("instructor")} value={f.instructor} onChange={setV("instructor")} options={alpha("instructor")} />)}
+        {F("Day", <select className={inp("day")} value={f.day} onChange={set("day")}>
           {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}</select>)}
-        {F("Start time", <><input type="time" className={inp("time")} list="ea-time" value={f.time} onChange={set("time")} />
-          <datalist id="ea-time">{alpha("time").map(n => <option key={n} value={n} />)}</datalist></>)}
-        {F("Minutes", <><input type="number" step="15" className={inp("duration_min")} list="ea-dur" value={f.duration_min} onChange={set("duration_min")} />
-          <datalist id="ea-dur">{num("duration_min").map(n => <option key={n} value={n} />)}</datalist></>)}
-        {F("Capacity", <><input type="number" className={inp("capacity")} list="ea-cap" value={f.capacity} onChange={set("capacity")} />
-          <datalist id="ea-cap">{num("capacity").map(n => <option key={n} value={n} />)}</datalist></>)}
-        {F("Room", <><input className={inp("room")} list="ea-room" value={f.room} onChange={set("room")} />
-          <datalist id="ea-room">{alpha("room").map(n => <option key={n} value={n} />)}</datalist></>)}
-        {F("Category", <><input className={inp("category")} list="ea-cat" value={f.category} onChange={set("category")} />
-          <datalist id="ea-cat">{alpha("category").map(n => <option key={n} value={n} />)}</datalist></>)}
+        {F("Start time", <Combo type="time" cls={inp("time")} value={f.time} onChange={setV("time")} options={alpha("time")} />)}
+        {F("Minutes", <Combo mode="numeric" cls={inp("duration_min")} value={f.duration_min} onChange={setV("duration_min")} options={num("duration_min")} />)}
+        {F("Capacity", <Combo mode="numeric" cls={inp("capacity")} value={f.capacity} onChange={setV("capacity")} options={num("capacity")} />)}
+        {F("Room", <Combo cls={inp("room")} value={f.room} onChange={setV("room")} options={alpha("room")} />)}
+        {F("Category", <Combo cls={inp("category")} value={f.category} onChange={setV("category")} options={alpha("category")} />)}
         {F("Payment", <select className={inp("pricing")} value={f.pricing} onChange={set("pricing")}>
           <option value="dropin">standard (packs ok)</option><option value="donation">donation</option><option value="external">paid to instructor</option></select>)}
-        {F("Price $ (blank = default)", <><input type="number" className={inp("price")} list="ea-price" value={f.price} onChange={set("price")} />
-          <datalist id="ea-price">{num("price").map(n => <option key={n} value={n} />)}</datalist></>)}
+        {F("Price $ (blank = default)", <Combo mode="decimal" cls={inp("price")} value={f.price} onChange={setV("price")} options={num("price")} />)}
         {adding && F("Repeats", <select className={inp("scope")} value={f.scope} onChange={set("scope")}>
           <option value="always">every week</option><option value="once">this week only</option></select>)}
       </div>
       {!adding && Object.keys(diffs()).length > 0 && <p className="text-xs text-ea-brown mt-2">Highlighted fields differ from the usual schedule — choose how to save.</p>}
+      {!adding && !b.on_date && dif("day") && <p className="text-xs text-ea-brown mt-2">Day changes move the class for every week — use “Save · Every Week”.</p>}
       {err && <p className="text-sm text-red-700 mt-2">{err}</p>}
       <div className="flex gap-2 mt-3 flex-wrap items-center">
         {past ? <span className="text-sm text-ea-espresso/60 italic">Past class — read-only. Switch to a current or future week to make changes.</span>
         : adding ? <button className="btn" onClick={create}>Add Class</button> : <>
-          {!b.on_date && <button className="btn" onClick={saveWeek}>Save · This Week Only</button>}
+          {!b.on_date && <button className="btn disabled:opacity-40" disabled={dif("day")} title={dif("day") ? "Day changes apply to every week" : undefined} onClick={saveWeek}>Save · This Week Only</button>}
           <button className="btn btn--accent" onClick={saveAll}>{b.on_date ? "Save" : "Save · Every Week"}</button>
           {!b.on_date && <button className="btn" onClick={toggleCancel}>{c.cancelled ? "Restore This Week" : "Cancel This Week"}</button>}
           <span className="ml-auto" />
