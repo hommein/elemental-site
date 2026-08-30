@@ -175,7 +175,7 @@ export default function Classes() {
       <div className="text-center mb-6">
         <button onClick={() => setShowBk(true)}
           className="btn btn--accent px-5 py-2 text-sm shadow-sm">
-          📋 My Bookings &amp; Cancellations
+          📋 My Bookings
         </button>
       </div>
 
@@ -283,7 +283,7 @@ export default function Classes() {
 
 type Bk = { kind: "class" | "opengym"; id: number; date: string; time: string; title: string; instructor?: string; room?: string; can_cancel: boolean };
 
-function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
+export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => void }) {
   const [email, setEmail] = useState("");
   const [rows, setRows] = useState<Bk[] | null>(null);
   const [busy, setBusy] = useState(false);

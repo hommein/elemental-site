@@ -733,10 +733,6 @@ function TallyTab() {
                 <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Pack & payments</div>
                 <div className="text-sm flex flex-wrap items-center gap-2">
                   {pack ? <span>Pack: <b>{pack.remaining}</b> left</span> : <em className="opacity-60">no class pack</em>}
-                  {pack && p.id && p.packs[0] && <>
-                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: p.packs[0].id, delta: -1 })}>−1</button>
-                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy} onClick={() => post({ op: "adjust_pack", id: p.packs[0].id, delta: 1 })}>+1</button>
-                  </>}
                 </div>
                 {p.payments.length > 0 && <div className="mt-2">
                   <div className="text-[11px] uppercase tracking-wide opacity-50 mb-0.5">Payments logged</div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { me, setUser, type User } from "../lib/user";
+import { MyBookingsModal } from "./Classes";
 
 const GOOGLE_CLIENT_ID = "119603995086-p8d32a3mlbm2cdl1e9h8bkrqe7vlnrbm.apps.googleusercontent.com";
 
@@ -37,6 +38,7 @@ export default function Account() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
+  const [showBk, setShowBk] = useState(false);
 
   useEffect(() => { me().then(u => { setU(u); setLoaded(true); }); }, []);
 
@@ -65,6 +67,8 @@ export default function Account() {
             Booking class sign-ups and open gym is now one click — your name and email are filled in
             automatically, and “My bookings” on the Classes page loads without asking.
           </p>
+          <button className="btn btn--accent" onClick={() => setShowBk(true)}>📋 My Bookings</button>
+          {showBk && <MyBookingsModal onClose={() => setShowBk(false)} />}
           <PhoneBox initial={user.phone || ""} />
           <PackBox />
           {user.is_admin && <a className="btn btn--accent text-center" href="/admin">Studio Admin</a>}
