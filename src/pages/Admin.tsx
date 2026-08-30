@@ -893,6 +893,38 @@ const fromDraft = (d: PDraft, active: number) => ({ section: d.section, title: d
   when_text: d.when_text || null, where_text: d.where_text || null, img: d.img || null,
   body: textToBody(d.bodyText), links: textToLinks(d.linksText) || null, sort_order: Number(d.sort_order) || 0, active });
 
+const Field = ({ label, value, onChange, w }: { label: string; value: string; onChange: (v: string) => void; w?: string }) => (
+  <label className={"block text-xs font-semibold text-ea-espresso/60 " + (w || "")}>
+    {label}
+    <input value={value} onChange={e => onChange(e.target.value)}
+      className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal text-ea-espresso" />
+  </label>
+);
+const Editor = ({ d, set }: { d: PDraft; set: (patch: Partial<PDraft>) => void }) => (
+  <div className="grid gap-2 sm:grid-cols-2 mt-2">
+    <Field label="Title" value={d.title} onChange={v => set({ title: v })} w="sm:col-span-2" />
+    <label className="block text-xs font-semibold text-ea-espresso/60">Section
+      <select value={d.section} onChange={e => set({ section: e.target.value })}
+        className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal">
+        {P_SECTIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+      </select>
+    </label>
+    <Field label="Date (YYYY-MM-DD, sets Past/Upcoming tag)" value={d.date} onChange={v => set({ date: v })} />
+    <Field label="When (display text)" value={d.when_text} onChange={v => set({ when_text: v })} />
+    <Field label="Where" value={d.where_text} onChange={v => set({ where_text: v })} />
+    <Field label="Image URL (or /events/file.jpg)" value={d.img} onChange={v => set({ img: v })} />
+    <Field label="Sort order (lower = higher on page)" value={d.sort_order} onChange={v => set({ sort_order: v })} />
+    <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Body — paragraphs separated by blank lines
+      <textarea value={d.bodyText} onChange={e => set({ bodyText: e.target.value })} rows={5}
+        className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal" />
+    </label>
+    <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Links — one per line, format: Label | https://url
+      <textarea value={d.linksText} onChange={e => set({ linksText: e.target.value })} rows={2}
+        className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal" />
+    </label>
+  </div>
+);
+
 function PostsTab() {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [drafts, setDrafts] = useState<Record<number, PDraft>>({});
@@ -923,37 +955,7 @@ function PostsTab() {
 
   if (!posts) return <p className="text-ea-espresso/50">Loading…</p>;
 
-  const Field = ({ label, value, onChange, w }: { label: string; value: string; onChange: (v: string) => void; w?: string }) => (
-    <label className={"block text-xs font-semibold text-ea-espresso/60 " + (w || "")}>
-      {label}
-      <input value={value} onChange={e => onChange(e.target.value)}
-        className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal text-ea-espresso" />
-    </label>
-  );
-  const Editor = ({ d, set }: { d: PDraft; set: (patch: Partial<PDraft>) => void }) => (
-    <div className="grid gap-2 sm:grid-cols-2 mt-2">
-      <Field label="Title" value={d.title} onChange={v => set({ title: v })} w="sm:col-span-2" />
-      <label className="block text-xs font-semibold text-ea-espresso/60">Section
-        <select value={d.section} onChange={e => set({ section: e.target.value })}
-          className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal">
-          {P_SECTIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-        </select>
-      </label>
-      <Field label="Date (YYYY-MM-DD, sets Past/Upcoming tag)" value={d.date} onChange={v => set({ date: v })} />
-      <Field label="When (display text)" value={d.when_text} onChange={v => set({ when_text: v })} />
-      <Field label="Where" value={d.where_text} onChange={v => set({ where_text: v })} />
-      <Field label="Image URL (or /events/file.jpg)" value={d.img} onChange={v => set({ img: v })} />
-      <Field label="Sort order (lower = higher on page)" value={d.sort_order} onChange={v => set({ sort_order: v })} />
-      <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Body — paragraphs separated by blank lines
-        <textarea value={d.bodyText} onChange={e => set({ bodyText: e.target.value })} rows={5}
-          className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal" />
-      </label>
-      <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Links — one per line, format: Label | https://url
-        <textarea value={d.linksText} onChange={e => set({ linksText: e.target.value })} rows={2}
-          className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal" />
-      </label>
-    </div>
-  );
+
 
   return (
     <div>
