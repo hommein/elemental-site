@@ -290,6 +290,7 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
   const [msg, setMsg] = useState("");
   const [changed, setChanged] = useState(false);
   const [past, setPast] = useState(false);
+  const [mi, setMi] = useState(0);
 
   useEffect(() => { me().then(u => { if (u) { setEmail(u.email); load(undefined, u.email); } }); }, []);
 
@@ -321,15 +322,15 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
     return (
       <div key={b.kind + b.id} className="border border-black/10 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium truncate">{b.title}{b.instructor ? ` \u00b7 ${b.instructor}` : ""}</div>
-          <div className="text-xs text-ea-espresso/60">{prettyDate(b.date)} \u00b7 {fmt(b.time)}</div>
+          <div className="text-sm font-medium truncate">{b.title}{b.instructor ? ` · ${b.instructor}` : ""}</div>
+          <div className="text-xs text-ea-espresso/60">{prettyDate(b.date)} · {fmt(b.time)}</div>
         </div>
         {b.can_cancel
           ? <button className="text-sm underline text-red-700 whitespace-nowrap" disabled={busy}
               onClick={() => cancel(b)}>Cancel</button>
           : past
           ? null
-          : <a href="sms:+18053642037" className="text-xs text-ea-espresso/60 whitespace-nowrap underline">&lt;12h \u2014 text (805)&nbsp;364-2037</a>}
+          : <a href="sms:+18053642037" className="text-xs text-ea-espresso/60 whitespace-nowrap underline">&lt;12h — text (805)&nbsp;364-2037</a>}
       </div>
     );
   }
@@ -361,25 +362,28 @@ export function MyBookingsModal({ onClose }: { onClose: (changed: boolean) => vo
                 }
                 g.items.push(b);
               }
+              const gi = Math.min(mi, groups.length - 1);
+              const g = groups[gi];
               return (
-                <div className="flex flex-col gap-3">
-                  <p className="text-xs text-ea-espresso/60 -mb-1">{rows.length} visit{rows.length === 1 ? "" : "s"} on record{rows.length >= 100 ? " (showing latest 100)" : ""}</p>
-                  {groups.map(g => (
-                    <div key={g.key}>
-                      <div className="flex items-baseline justify-between mb-1">
-                        <span className="text-[11px] uppercase tracking-wide font-semibold text-ea-espresso/50">{g.label}</span>
-                        <span className="text-[11px] text-ea-espresso/40">{g.items.length} visit{g.items.length === 1 ? "" : "s"}</span>
-                      </div>
-                      <div className="flex flex-col gap-1.5">{g.items.map(b => bkRow(b))}</div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <button className="btn !px-3 !py-1 text-sm" disabled={gi >= groups.length - 1}
+                      onClick={() => setMi(gi + 1)} aria-label="Older month">&lsaquo;</button>
+                    <div className="text-center">
+                      <div className="font-medium">{g.label}</div>
+                      <div className="text-xs text-ea-espresso/50">{g.items.length} visit{g.items.length === 1 ? "" : "s"} this month &middot; {rows.length} total</div>
                     </div>
-                  ))}
+                    <button className="btn !px-3 !py-1 text-sm" disabled={gi <= 0}
+                      onClick={() => setMi(gi - 1)} aria-label="Newer month">&rsaquo;</button>
+                  </div>
+                  <div className="flex flex-col gap-1.5">{g.items.map(b => bkRow(b))}</div>
                 </div>
               );
             })()
           : <div className="flex flex-col gap-1.5">{rows.map(b => bkRow(b))}</div>)}
         {rows && (
           <button className="text-sm underline text-ea-olive mt-3"
-            onClick={() => { const p = !past; setPast(p); setRows(null); load(undefined, undefined, p); }}>
+            onClick={() => { const p = !past; setPast(p); setMi(0); setRows(null); load(undefined, undefined, p); }}>
             {past ? "\u2039 Back to upcoming bookings" : "Show past bookings"}
           </button>
         )}
