@@ -17,27 +17,27 @@ export default function Home() {
         <h2 className="mb-8">Weekly Group Classes &amp; Jams</h2>
         <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))]">
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[258px] object-cover" />
+            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[340px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Aerial Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Silks, Lyra, Hammock, Straps &amp; more — all levels welcome.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full h-[258px] object-cover" />
+            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full h-[340px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics &amp; Flexibility</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[258px] object-cover" />
+            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Dance</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full h-[258px] object-cover" />
+            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full h-[340px] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Fire &amp; Flow Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Hoops, Fans, Rope Dart, Poi, Staff — cross-prop technique &amp; flow theory.</p>
           </div>
         </div>
       </section>
 
       <section className="bg-ea-cream">
-        <div className="container grid md:grid-cols-2 gap-10 items-center">
-          <img src="/dancewithus.jpg" alt="Aerialist posing on sling" loading="lazy" className="rounded-[10px] w-auto max-h-[440px] mx-auto" />
+        <div className="container !py-16 md:!py-20 grid md:grid-cols-2 gap-10 items-center">
+          <img src="/dancewithus.jpg" alt="Aerialist posing on sling" loading="lazy" className="rounded-[10px] w-full max-w-[560px] max-h-[640px] object-cover mx-auto" />
           <div>
             <h2 className="mt-0 mb-4">Dance With Us!</h2>
             <p className="mb-4">Aerial is a dance form, a workout, an avenue for self-expression &amp;
