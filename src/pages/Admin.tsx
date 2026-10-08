@@ -1189,7 +1189,10 @@ function InboxTab() {
               <div className={"text-sm mt-2 whitespace-pre-wrap " + (open === m.id ? "" : "line-clamp-2")}>{m.message}</div>
               {open === m.id && (
                 <div className="mt-3 flex flex-wrap gap-3 text-xs items-center">
-                  {m.files && <span className="opacity-70">Attachments: {m.files} (only delivered by email)</span>}
+                  {(data.files as any[]).filter(f => f.message_id === m.id).map(f => (
+                    <a key={f.id} className="underline" target="_blank" rel="noopener" href={`/api/admin/file/${f.id}`}>📎 {f.name} <span className="opacity-60">({f.size < 1048576 ? Math.max(1, Math.round(f.size / 1024)) + " KB" : (f.size / 1048576).toFixed(1) + " MB"})</span></a>
+                  ))}
+                  {m.files && !(data.files as any[]).some(f => f.message_id === m.id) && <span className="opacity-70">Attachments: {m.files} (sent before attachment storage was added — not saved)</span>}
                   <span className="opacity-70">Email list: {m.subscribed ? "yes" : "no"}</span>
                   <a className="btn !py-1 !px-3 !text-xs" target="_blank" rel="noopener" href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(m.email)}&su=${encodeURIComponent("Re: your message to Elemental Aerial Arts")}&body=${encodeURIComponent("\n\n> " + m.message.replace(/\n/g, "\n> "))}`}>Reply in Gmail</a>
                   <a className="underline" href={`mailto:${m.email}?subject=Re: your message to Elemental Aerial Arts`}>mail app</a>

@@ -24,6 +24,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const row = await env.DB.prepare("INSERT INTO contact_messages(name,email,message,files,subscribed) VALUES(?,?,?,?,?)")
     .bind(name, email, message, files.map(f => f.name).join(", ") || null, subscribe).run();
   const id = row.meta.last_row_id;
+  // store attachments in D1 in ~900 KB chunks so admins can download them from the Inbox
+  const CHUNK = 900 * 1024;
+  for (const f of files) {
+    const buf = new Uint8Array(await f.arrayBuffer());
+    for (let part = 0, off = 0; off < buf.length; part++, off += CHUNK) {
+      await env.DB.prepare("INSERT INTO contact_files(message_id,name,type,size,part,data) VALUES(?,?,?,?,?,?)")
+        .bind(id, f.name.slice(0, 120), f.type || null, f.size, part, buf.slice(off, off + CHUNK)).run();
+    }
+  }
 
   let sent = false, err: string | null = null;
   if (env.RESEND_API_KEY) {
