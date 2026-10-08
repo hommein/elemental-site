@@ -60,7 +60,7 @@ export default function Home() {
           <h2 className="mt-0 mb-3">Contact the Studio</h2>
           <p className="mb-5">Questions about classes, private lessons, or open studio time? Send us a note — we&apos;d love to hear from you.</p>
           <ContactForm />
-          <div className="mt-auto pt-6"><div className="rounded-[10px] bg-ea-cream p-5 text-base leading-relaxed font-serif">
+          <div className="mt-auto pt-6"><div className="rounded-[10px] bg-ea-cream p-5 text-lg leading-relaxed font-display">
             <p className="m-0 font-semibold text-2xl">Elemental Aerial Arts</p>
             <p className="m-0"><a href="https://maps.google.com/?q=22+W+Mission+St+Unit+B,+Santa+Barbara,+CA+93101">22 W Mission St Unit B, Santa Barbara, CA 93101</a></p>
             <p className="m-0"><a href="mailto:elementalaerialarts@gmail.com">elementalaerialarts@gmail.com</a></p>
