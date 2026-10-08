@@ -1179,7 +1179,7 @@ function InboxTab({ onChange }: { onChange?: () => void }) {
         <div className="grid gap-2">
           {msgs.map(m => (
             <div key={m.id} className={"rounded-lg border border-ea-accent/30 bg-white p-3 " + (m.read_at ? "opacity-70" : "")}>
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 cursor-pointer" onClick={() => setOpen(open === m.id ? null : m.id)}>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 cursor-pointer" onClick={() => { const opening = open !== m.id; setOpen(opening ? m.id : null); if (opening && !m.read_at) post({ op: "mark_read", id: m.id }); }}>
                 {!m.read_at && <span className="w-2 h-2 rounded-full bg-ea-gold inline-block" title="unread" />}
                 <span className="font-semibold">{m.name}</span>
                 <span className="text-sm select-all">{m.email}</span>

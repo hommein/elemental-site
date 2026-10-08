@@ -21,6 +21,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
   if (!(await admin(env, request))) return json({ error: "Admins only" }, 403);
   let b: any; try { b = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   if (b.op === "delete_message") { await env.DB.batch([env.DB.prepare("DELETE FROM contact_messages WHERE id=?").bind(b.id), env.DB.prepare("DELETE FROM contact_files WHERE message_id=?").bind(b.id)]); return json({ ok: true }); }
+  if (b.op === "mark_read") { await env.DB.prepare("UPDATE contact_messages SET read_at = datetime('now') WHERE id=? AND read_at IS NULL").bind(b.id).run(); return json({ ok: true }); }
   if (b.op === "toggle_read") { await env.DB.prepare("UPDATE contact_messages SET read_at = CASE WHEN read_at IS NULL THEN datetime('now') ELSE NULL END WHERE id=?").bind(b.id).run(); return json({ ok: true }); }
   if (b.op === "remove_list") { await env.DB.prepare("DELETE FROM email_list WHERE id=?").bind(b.id).run(); return json({ ok: true }); }
   if (b.op === "add_list") {
