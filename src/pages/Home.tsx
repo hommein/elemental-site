@@ -5,12 +5,13 @@ export default function Home() {
         className="flex flex-col items-center justify-center text-center text-ea-paper px-4 py-12 aspect-[2000/850] max-md:aspect-auto max-md:min-h-[430px] max-md:py-16 bg-cover bg-no-repeat [background-position:28%_50%]"
         style={{ backgroundImage: "linear-gradient(rgba(21,21,21,0.4), rgba(75,61,52,0.5)), url(/hero.jpg)" }}
       >
-        <h1 className="text-ea-paper">Aerial Arts · Dance · Flow</h1>
-        <p className="max-w-[580px] mt-4 mb-8">
-          An all-inclusive training space in Santa Barbara, CA — an aerial &amp; dance
-          practice for the Santa Barbara community. Open studio time available &amp; encouraged.
+        <h1 className="text-ea-paper">Aerial Arts<br />Dance Classes</h1>
+        <p className="max-w-[580px] mt-4 mb-0">
+          Flexibility, Acrobatics &amp; Flow Arts Instruction<br />
+          An all-inclusive training space in Santa Barbara, CA.
         </p>
-        <a className="btn btn--accent" href="/classes">Find Your Flight</a>
+        <p className="max-w-[580px] mt-4 mb-8">Open studio time available &amp; encouraged.</p>
+        <a className="btn btn--accent" href="/classes">SIGN UP FOR CLASS - HERE</a>
       </section>
 
       <section className="container">
