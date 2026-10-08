@@ -34,21 +34,21 @@ export default function Home() {
 
       <section className="container">
         <h2 className="mb-8">Weekly Group Classes &amp; Jams</h2>
-        <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))]">
+        <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[340px] object-cover" />
+            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full aspect-[3/4] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Aerial Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Silks, Lyra, Hammock, Straps &amp; more — all levels welcome.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full h-[340px] object-cover" />
+            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full aspect-[3/4] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics &amp; Flexibility</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover scale-110" />
+            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full aspect-[3/4] object-cover scale-125 [object-position:65%_50%]" />
             <h3 className="text-xl mt-4 mb-1 px-6">Dance</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full h-[340px] object-cover" />
+            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full aspect-[3/4] object-cover" />
             <h3 className="text-xl mt-4 mb-1 px-6">Fire &amp; Flow Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Hoops, Fans, Rope Dart, Poi, Staff — cross-prop technique &amp; flow theory.</p>
           </div>
         </div>
@@ -60,14 +60,13 @@ export default function Home() {
           <h2 className="mt-0 mb-3">Contact the Studio</h2>
           <p className="mb-5">Questions about classes, private lessons, or open studio time? Send us a note — we&apos;d love to hear from you.</p>
           <ContactForm />
-          <div className="rounded-[10px] bg-ea-cream p-5 mt-6 text-sm leading-relaxed">
-            <p className="m-0 font-semibold">Elemental Aerial Arts</p>
-            <p className="m-0"><a href="https://maps.google.com/?q=22+W+Mission+St+Unit+B,+Santa+Barbara,+CA+93101">22 W Mission St Unit B, Santa Barbara, CA 93101</a></p>
-            <p className="m-0"><a href="mailto:elementalaerialarts@gmail.com">elementalaerialarts@gmail.com</a></p>
-            <p className="m-0"><a href="tel:+18053642037">(805) 364-2037</a> (call or text)</p>
-          </div>
         </div>
         <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full h-full object-cover max-md:h-[300px]" />
+        <div className="md:col-span-2 rounded-[10px] bg-ea-cream p-5 text-sm leading-relaxed grid sm:grid-cols-3 gap-2 text-center">
+          <p className="m-0"><a href="https://maps.google.com/?q=22+W+Mission+St+Unit+B,+Santa+Barbara,+CA+93101">22 W Mission St Unit B, Santa Barbara, CA 93101</a></p>
+          <p className="m-0"><a href="mailto:elementalaerialarts@gmail.com">elementalaerialarts@gmail.com</a></p>
+          <p className="m-0"><a href="tel:+18053642037">(805) 364-2037</a> (call or text)</p>
+        </div>
       </section>
 
       <section className="bg-ea-espresso text-center">
