@@ -14,44 +14,44 @@ export default function Home() {
         <a className="btn btn--accent" href="/classes">SIGN UP FOR CLASS - HERE</a>
       </section>
 
-      <section className="container text-center">
-        <h2 className="mb-2">An aerial &amp; dance practice for the Santa Barbara community</h2>
-        <p className="text-xl mb-8">Find Your Flight</p>
-        <h3 className="text-2xl mb-6">Weekly Group Classes &amp; Jams:</h3>
-        <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))] text-left">
-          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[340px] object-cover" />
-            <h3 className="text-xl mt-4 mb-1 px-6">Aerial Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Silk, Lyra, Hammock, Straps &amp; More</p>
-          </div>
-          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/acro.jpg" alt="Acrobatics" loading="lazy" className="w-full h-[340px] object-cover" />
-            <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Flexibility, Handstands, Fire &amp; Flow Arts</p>
-          </div>
-          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover" />
-            <h3 className="text-xl mt-4 mb-1 px-6">Dance Classes</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly, House &amp; More</p>
-          </div>
-        </div>
-        <p className="mt-10 mb-1 text-lg">Group Classes &amp; Private Lessons</p>
-        <p className="mt-0 mb-6 text-lg">Open Gym Training</p>
-        <a className="btn" href="/classes">More info On Our Classes - Here</a>
-      </section>
-
       <section className="bg-ea-cream">
         <div className="container !py-16 md:!py-20 grid md:grid-cols-2 gap-10 items-center">
           <img src="/dancewithus.jpg" alt="Aerialist posing on sling" loading="lazy" className="rounded-[10px] w-full max-w-[560px] max-h-[640px] object-cover mx-auto" />
           <div>
-            <h2 className="mt-0 mb-4">Dance With Us!</h2>
-            <p className="mb-4">Aerial is a dance form, a workout, an avenue for self-expression &amp;
-              self-discovery! Play, explore, challenge yourself and grow.</p>
-            <p className="mb-4">Elemental is a group of supportive friends and we can&apos;t wait to fly with you.
-              Group lessons on various apparatuses throughout the week — or book semi-private
-              &amp; private lessons around <em>your</em> schedule. Lessons catered to all skill levels.</p>
-            <p className="mb-6">Elemental Arts is a shared space with Selah Dance and others.</p>
-            <a className="btn" href="/contact">Contact Us With Any Questions</a>
+            <h2 className="mt-0 mb-2">An aerial &amp; dance practice for the Santa Barbara community</h2>
+            <p className="text-xl mb-4">Find Your Flight</p>
+            <p className="font-semibold mb-4">Weekly Group Classes &amp; Jams:</p>
+            <p className="mb-4"><strong>Aerial Arts</strong><br />Silk, Lyra, Hammock, Straps &amp; More</p>
+            <p className="mb-4"><strong>Acrobatics</strong><br />Flexibility, Handstands, Fire &amp; Flow Arts</p>
+            <p className="mb-4"><strong>Dance Classes</strong><br />Ballet, Jazz, Belly, House &amp; More</p>
+            <p className="mb-6">Group Classes &amp; Private Lessons<br />Open Gym Training</p>
+            <a className="btn" href="/classes">More info On Our Classes - Here</a>
           </div>
         </div>
       </section>
+
+      <section className="container">
+        <h2 className="mb-8">Weekly Group Classes &amp; Jams</h2>
+        <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))]">
+          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
+            <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[340px] object-cover" />
+            <h3 className="text-xl mt-4 mb-1 px-6">Aerial Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Silks, Lyra, Hammock, Straps &amp; more — all levels welcome.</p>
+          </div>
+          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
+            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full h-[340px] object-cover" />
+            <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics &amp; Flexibility</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
+          </div>
+          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
+            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover" />
+            <h3 className="text-xl mt-4 mb-1 px-6">Dance</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
+          </div>
+          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
+            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full h-[340px] object-cover" />
+            <h3 className="text-xl mt-4 mb-1 px-6">Fire &amp; Flow Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Hoops, Fans, Rope Dart, Poi, Staff — cross-prop technique &amp; flow theory.</p>
+          </div>
+        </div>
+      </section>
+
 
       <section className="container grid md:grid-cols-2 gap-10 items-center">
         <div>
