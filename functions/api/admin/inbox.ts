@@ -7,6 +7,10 @@ async function admin(env: AuthEnv, request: Request) {
 
 export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => {
   if (!(await admin(env, request))) return json({ error: "Admins only" }, 403);
+  if (new URL(request.url).searchParams.has("count")) {
+    const r = await env.DB.prepare("SELECT COUNT(*) n FROM contact_messages WHERE read_at IS NULL").first<any>();
+    return json({ unread: r?.n || 0 });
+  }
   const messages = (await env.DB.prepare("SELECT * FROM contact_messages ORDER BY id DESC LIMIT 500").all()).results;
   const list = (await env.DB.prepare("SELECT * FROM email_list ORDER BY id DESC").all()).results;
   const files = (await env.DB.prepare("SELECT id, message_id, name, size FROM contact_files WHERE part=0 ORDER BY id").all()).results;

@@ -1156,7 +1156,7 @@ function EmailTab() {
   );
 }
 
-function InboxTab() {
+function InboxTab({ onChange }: { onChange?: () => void }) {
   const [data, setData] = useState<any>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [newEmail, setNewEmail] = useState("");
@@ -1164,7 +1164,7 @@ function InboxTab() {
   const [copied, setCopied] = useState<number | null>(null);
   const load = () => fetch("/api/admin/inbox").then(r => r.json()).then(setData);
   useEffect(() => { load(); }, []);
-  const post = (body: any) => fetch("/api/admin/inbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()).then(load);
+  const post = (body: any) => fetch("/api/admin/inbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()).then(load).then(() => onChange?.());
   if (!data) return <p>Loading…</p>;
   if (!data.messages) return <p>Admins only.</p>;
   const msgs = data.messages as any[];
@@ -1226,6 +1226,9 @@ function InboxTab() {
 
 export default function Admin() {
   const [tab, setTab] = useState<"schedule" | "tally" | "email" | "trends" | "posts" | "inbox">("tally");
+  const [unread, setUnread] = useState(0);
+  const refreshUnread = () => fetch("/api/admin/inbox?count=1").then(r => r.json()).then(j => setUnread(j.unread || 0)).catch(() => {});
+  useEffect(() => { refreshUnread(); const t = setInterval(refreshUnread, 60000); return () => clearInterval(t); }, []);
   return (
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
@@ -1233,12 +1236,15 @@ export default function Admin() {
         {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["posts", "Events & Posts"], ["email", "Email"], ["inbox", "Inbox"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={"px-4 py-2 sm:px-6 sm:py-2.5 text-sm sm:text-base rounded-full font-semibold tracking-wide transition-colors " +
-              (tab === k ? "bg-ea-espresso text-ea-paper shadow" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
+              (tab === k ? "bg-ea-espresso text-ea-paper shadow" : k === "inbox" && unread > 0 ? "bg-ea-gold/30 text-ea-espresso hover:bg-ea-gold/50 ring-2 ring-ea-gold" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
             {label}
+            {k === "inbox" && unread > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-ea-gold text-ea-espresso text-xs font-bold align-middle" title={`${unread} unread`}>{unread}</span>
+            )}
           </button>
         ))}
       </div>
-      {tab === "tally" ? <TallyTab /> : tab === "trends" ? <TrendsTab /> : tab === "email" ? <EmailTab /> : tab === "posts" ? <PostsTab /> : tab === "inbox" ? <InboxTab /> : <ScheduleTab />}
+      {tab === "tally" ? <TallyTab /> : tab === "trends" ? <TrendsTab /> : tab === "email" ? <EmailTab /> : tab === "posts" ? <PostsTab /> : tab === "inbox" ? <InboxTab onChange={refreshUnread} /> : <ScheduleTab />}
     </section>
   );
 }
