@@ -14,26 +14,27 @@ export default function Home() {
         <a className="btn btn--accent" href="/classes">SIGN UP FOR CLASS - HERE</a>
       </section>
 
-      <section className="container">
-        <h2 className="mb-8">Weekly Group Classes &amp; Jams</h2>
-        <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))]">
+      <section className="container text-center">
+        <h2 className="mb-2">An aerial &amp; dance practice for the Santa Barbara community</h2>
+        <p className="text-xl mb-8">Find Your Flight</p>
+        <h3 className="text-2xl mb-6">Weekly Group Classes &amp; Jams:</h3>
+        <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(230px,1fr))] text-left">
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
             <img src="/photos/aerial.jpg" alt="Aerial silks" loading="lazy" className="w-full h-[340px] object-cover" />
-            <h3 className="text-xl mt-4 mb-1 px-6">Aerial Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Silks, Lyra, Hammock, Straps &amp; more — all levels welcome.</p>
+            <h3 className="text-xl mt-4 mb-1 px-6">Aerial Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Silk, Lyra, Hammock, Straps &amp; More</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/acro.jpg" alt="Acrobatics and flexibility" loading="lazy" className="w-full h-[340px] object-cover" />
-            <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics &amp; Flexibility</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
+            <img src="/photos/acro.jpg" alt="Acrobatics" loading="lazy" className="w-full h-[340px] object-cover" />
+            <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Flexibility, Handstands, Fire &amp; Flow Arts</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
             <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover" />
-            <h3 className="text-xl mt-4 mb-1 px-6">Dance</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
-          </div>
-          <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/fire.jpg" alt="Fire and flow arts" loading="lazy" className="w-full h-[340px] object-cover" />
-            <h3 className="text-xl mt-4 mb-1 px-6">Fire &amp; Flow Arts</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Hoops, Fans, Rope Dart, Poi, Staff — cross-prop technique &amp; flow theory.</p>
+            <h3 className="text-xl mt-4 mb-1 px-6">Dance Classes</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly, House &amp; More</p>
           </div>
         </div>
+        <p className="mt-10 mb-1 text-lg">Group Classes &amp; Private Lessons</p>
+        <p className="mt-0 mb-6 text-lg">Open Gym Training</p>
+        <a className="btn" href="/classes">More info On Our Classes - Here</a>
       </section>
 
       <section className="bg-ea-cream">
