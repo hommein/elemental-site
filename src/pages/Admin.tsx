@@ -256,7 +256,7 @@ const owedOf = (p: any) =>
   + Math.max(0, -(pkBal(p) ?? 0)) * 27.5 - (Number(p.credit) || 0);
 const owesOf = (p: any) => owedOf(p) > 0.004;
 // base drop-in prices; per-class overrides (guest teachers etc.) ride in on each row's `price`
-const BASE_PRICE: Record<string, number> = { aerial: 30, flex: 12, opengym: 10 };
+const BASE_PRICE: Record<string, number> = { aerial: 30, flex: 12, opengym: 15 };
 const matchP = (i: any, k: string) =>
   k === "opengym" ? (i.kind === "opengym" || i.title === "Community Jam")
   : k === "flex" ? ["flex", "flow"].includes(i.category)
@@ -727,7 +727,7 @@ function TallyTab() {
                 {p.opengym.map((o: any, i: number) => (
                   <div key={"o" + i} className="text-sm flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     <span className="opacity-60 w-20 sm:w-24 shrink-0">{fmtD(o.date)}</span>
-                    <span>{fmtT(o.time)} · {o.title || "Open Gym"} ($10)</span>{payChip(o.pay_method)}{payBtn(o, o._kind || "opengym")}
+                    <span>{fmtT(o.time)} · {o.title || "Open Gym"} ($15)</span>{payChip(o.pay_method)}{payBtn(o, o._kind || "opengym")}
                   </div>))}
               </div>
               <div>
@@ -822,7 +822,7 @@ function TallyTab() {
                           <option value="membership">Open gym membership · $100/mo</option>
                           <option value="aerial">Single aerial class · $30</option>
                           <option value="flex">Single flex/flow class · $12</option>
-                          <option value="opengym">Open gym / jam session · $10</option>
+                          <option value="opengym">Open gym / jam session · $15</option>
                           <option value="credit">Credit on file (decide later)</option>
                         </select>
                       </div>

@@ -21,7 +21,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
 
   const D = env.DB;
   const su = (await D.prepare(
-    `SELECT s.date, s.pay_method, c.title, c.category, c.instructor, c.day, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price FROM signups s JOIN classes c ON c.id=s.class_id
+    `SELECT s.date, s.pay_method, c.title, c.category, c.instructor, c.day, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 15 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2`).bind(lo, e0).all()).results as any[];
   const og = (await D.prepare("SELECT date, time, pay_method FROM opengym WHERE date >= ?1 AND date < ?2").bind(lo, e0).all()).results as any[];
   const pay = (await D.prepare("SELECT date, amount FROM payments WHERE date >= ?1 AND date < ?2").bind(s0, e0).all()).results as any[];
@@ -51,7 +51,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
       bump(s.date, "opengym");
       if (s.date >= s90) {
         byDay[new Date(s.date + "T00:00:00Z").getUTCDay()].og++;
-        payMix[s.pay_method || "unset"] = (payMix[s.pay_method || "unset"] || 0) + 10;
+        payMix[s.pay_method || "unset"] = (payMix[s.pay_method || "unset"] || 0) + s.price;
       }
       continue;
     }
@@ -71,7 +71,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
     if (o.date >= s90) {
       byDay[new Date(o.date + "T00:00:00Z").getUTCDay()].og++;
       ogHour[o.time] = (ogHour[o.time] || 0) + 1;
-      payMix[o.pay_method || "unset"] = (payMix[o.pay_method || "unset"] || 0) + 10;
+      payMix[o.pay_method || "unset"] = (payMix[o.pay_method || "unset"] || 0) + 15;
     }
   }
   for (const p of pay) bump(p.date, "revenue", p.amount || 0);

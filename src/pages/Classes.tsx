@@ -148,7 +148,7 @@ export default function Classes() {
         Aerial for all levels, flexibility &amp; handstands, flow arts, and dance.
         All classes are one hour. Aerial classes are $30 drop-in or $110 for a 4-pack;
         flex &amp; flow classes are donation-based ($12 suggested).
-        Open Gym is $10 per session — or unlimited with an Open Gym membership.
+        Open Gym is $15 per session — or unlimited with an Open Gym membership.
       </p>
 
       {/* week switcher */}
@@ -625,7 +625,7 @@ ${cls.pay_note}` : ""}
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
               className="border border-black/20 rounded-lg px-3 py-2" />
             <fieldset className="flex flex-col gap-1.5 text-sm">
-              <legend className="font-medium mb-1">How are you paying?{isJam && " ($10 — same as open gym)"}</legend>
+              <legend className="font-medium mb-1">How are you paying?{isJam && " ($15 — same as open gym)"}</legend>
               {packLeft != null && !isJam && !isDon && (
                 <label className="flex items-center gap-2">
                   <input type="radio" name="pay" checked={pay === "pack"} onChange={() => setPay("pack")} required />
@@ -640,11 +640,11 @@ ${cls.pay_note}` : ""}
               )}
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
-                {isJam ? "$10 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : "Single class — Venmo"}
+                {isJam ? "$15 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : "Single class — Venmo"}
               </label>
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "cash"} onChange={() => setPay("cash")} required />
-                {isJam ? "$10 — cash in studio" : isDon ? `$${cls.price ?? 12} suggested donation — cash in studio` : "Single class — cash in studio"}
+                {isJam ? "$15 — cash in studio" : isDon ? `$${cls.price ?? 12} suggested donation — cash in studio` : "Single class — cash in studio"}
               </label>
             </fieldset>
             {msg && <p className="text-sm text-red-700">{msg}</p>}
@@ -714,7 +714,7 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="font-serif text-2xl mb-1">Open Gym — {DAYS[day]} {prettyDate(date)}</h3>
         <p className="text-sm text-ea-espresso/70 mb-4">
-          Train independently in any open one-hour slot. $10 per session, or free with an
+          Train independently in any open one-hour slot. $15 per session, or free with an
           Open Gym membership. Pick a time:
         </p>
         {adm && state !== "done" && (
@@ -727,7 +727,7 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
             {pay === "venmo" && (
               <a className="btn btn--accent w-full mb-2 block text-center" target="_blank" rel="noreferrer"
                 href="https://account.venmo.com/u/Katelyn-Carano">
-                Pay $10 on Venmo (note: "Aerial")
+                Pay $15 on Venmo (note: "Aerial")
               </a>)}
             {slot && <button className="btn w-full mb-2" onClick={() => openGcal("Open Gym", date, slot, 60)}>
               📅 Add to Google Calendar
@@ -758,7 +758,7 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
             </div>
             {adm && slot && <OgRoster date={date} time={slot} />}
             <div className="text-sm">
-              <p className="font-medium mb-1">How will you pay? ($10{memberUntil != null && memberUntil >= date ? " — free with your membership" : ""})</p>
+              <p className="font-medium mb-1">How will you pay? ($15{memberUntil != null && memberUntil >= date ? " — free with your membership" : ""})</p>
               {memberUntil != null && memberUntil >= date && (
                 <label className="flex items-center gap-2 mb-1">
                   <input type="radio" name="ogpay" checked={pay === "membership"} onChange={() => setPay("membership")} required />
