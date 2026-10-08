@@ -1,4 +1,4 @@
-import { AuthEnv, json, getUser } from "../../_lib";
+import { AuthEnv, json, getUser } from "../../../_lib";
 async function admin(env: AuthEnv, request: Request) { const u = await getUser(env, request); return u && u.is_admin ? u : null; }
 
 // GET /api/admin/file/:id → download an attachment (id = first chunk's row id)
