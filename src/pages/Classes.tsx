@@ -143,12 +143,14 @@ export default function Classes() {
 
   return (
     <section className="container py-10">
-      <h1 className="font-serif text-4xl mb-2">Classes &amp; Schedule</h1>
+      <h1 className="font-serif text-4xl mb-2">Classes</h1>
       <p className="max-w-2xl text-ea-espresso/80 mb-6">
-        Aerial for all levels, flexibility &amp; handstands, flow arts, and dance.
-        All classes are one hour. Aerial classes are $30 drop-in or $110 for a 4-pack;
-        flex &amp; flow classes are donation-based ($12 suggested).
+        Elemental Arts offers aerial for all levels, dance classes, flexibility, acrobatics &amp; flow arts instruction.
+        All elemental classes are one hour. Aerial classes are $30 drop-in or $110 for a 4-pack;
+        ground based classes are donation-based ($12-20 suggested).
         Open Gym is $15 per session — or unlimited with an Open Gym membership.
+        Elemental Arts is a shared space with Selah Dance and offerings from groups across our local dance community,
+        click on their class below to book.
       </p>
 
       {/* week switcher */}
