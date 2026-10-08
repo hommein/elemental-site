@@ -44,7 +44,7 @@ export default function Home() {
             <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics &amp; Flexibility</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover" />
+            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover scale-110" />
             <h3 className="text-xl mt-4 mb-1 px-6">Dance</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
@@ -62,7 +62,7 @@ export default function Home() {
           <ContactForm />
         </div>
         <div>
-          <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full h-[220px] md:h-[300px] object-cover mb-5" />
+          <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] max-h-[300px] w-auto max-w-full mx-auto mb-5" />
           <div className="rounded-[10px] bg-ea-cream p-5 text-sm leading-relaxed">
             <p className="m-0 font-semibold">Elemental Aerial Arts</p>
             <p className="m-0"><a href="https://maps.google.com/?q=22+W+Mission+St+Unit+B,+Santa+Barbara,+CA+93101">22 W Mission St Unit B, Santa Barbara, CA 93101</a></p>
