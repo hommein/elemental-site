@@ -44,7 +44,7 @@ export default function Home() {
             <h3 className="text-xl mt-4 mb-1 px-6">Acrobatics &amp; Flexibility</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Handstands, Intro to Contortion, Strength &amp; Flexibility training.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
-            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover object-bottom" />
+            <img src="/photos/dance.jpg" alt="Dance class" loading="lazy" className="w-full h-[340px] object-cover [object-position:50%_70%]" />
             <h3 className="text-xl mt-4 mb-1 px-6">Dance</h3><p className="px-6 m-0 text-sm text-ea-espresso/80">Ballet, Jazz, Belly Dancing, Contemporary, Heels, House &amp; more.</p>
           </div>
           <div className="rounded-[10px] overflow-hidden bg-white shadow-sm text-center pb-5">
