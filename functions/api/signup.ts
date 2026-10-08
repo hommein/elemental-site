@@ -48,7 +48,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (pay_method === "pack") {
     if (cls.pricing !== "dropin")
       return err(cls.title === "Community Jam"
-        ? "Community Jam is $15 like open gym — choose Venmo or cash"
+        ? "Community Jam is $10 — choose Venmo or cash"
         : "This class is donation-based ($" + (cls.price ?? 12) + " suggested) and isn't covered by class packs — choose Venmo or cash", 400);
     const u: any = await env.DB.prepare("SELECT id FROM users WHERE email=?1").bind(em).first();
     // oldest pack with balance first; otherwise newest pack (balance may go negative

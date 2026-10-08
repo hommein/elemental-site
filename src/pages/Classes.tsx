@@ -625,7 +625,7 @@ ${cls.pay_note}` : ""}
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
               className="border border-black/20 rounded-lg px-3 py-2" />
             <fieldset className="flex flex-col gap-1.5 text-sm">
-              <legend className="font-medium mb-1">How are you paying?{isJam && " ($15 — same as open gym)"}</legend>
+              <legend className="font-medium mb-1">How are you paying?{isJam && " ($10 — discounted)"}</legend>
               {packLeft != null && !isJam && !isDon && (
                 <label className="flex items-center gap-2">
                   <input type="radio" name="pay" checked={pay === "pack"} onChange={() => setPay("pack")} required />
@@ -640,11 +640,11 @@ ${cls.pay_note}` : ""}
               )}
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
-                {isJam ? "$15 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : "Single class — Venmo"}
+                {isJam ? "$10 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : "Single class — Venmo"}
               </label>
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "cash"} onChange={() => setPay("cash")} required />
-                {isJam ? "$15 — cash in studio" : isDon ? `$${cls.price ?? 12} suggested donation — cash in studio` : "Single class — cash in studio"}
+                {isJam ? "$10 — cash in studio" : isDon ? `$${cls.price ?? 12} suggested donation — cash in studio` : "Single class — cash in studio"}
               </label>
             </fieldset>
             {msg && <p className="text-sm text-red-700">{msg}</p>}

@@ -35,7 +35,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
     (SELECT max(end_date) FROM memberships m WHERE m.user_id=users.id) AS member_until
     FROM users ORDER BY name`).all()).results as any[];
   const su = (await env.DB.prepare(
-    `SELECT s.id, s.paid, s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 15 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price, c.pricing FROM signups s JOIN classes c ON c.id=s.class_id
+    `SELECT s.id, s.paid, s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price, c.pricing FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2 ORDER BY s.date, c.time`).bind(week, weekEnd).all()).results as any[];
   const og = (await env.DB.prepare(
     "SELECT id, paid, email, date, time, pay_method, 15 AS price FROM opengym WHERE date >= ?1 AND date < ?2").bind(week, weekEnd).all()).results as any[];
@@ -69,7 +69,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     const tbl = b.kind === "opengym" ? "opengym" : "signups";
     const row: any = tbl === "opengym"
       ? await D.prepare("SELECT id, paid, email, 15 AS price, pay_method FROM opengym WHERE id=?1").bind(Number(b.id)).first()
-      : await D.prepare(`SELECT s.id, s.paid, s.email, s.pay_method, c.pricing, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 15 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price
+      : await D.prepare(`SELECT s.id, s.paid, s.email, s.pay_method, c.pricing, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price
            FROM signups s JOIN classes c ON c.id=s.class_id WHERE s.id=?1`).bind(Number(b.id)).first();
     if (!row) return json({ error: "Booking not found" }, 404);
     const billable = row.pay_method !== "pack" && row.pay_method !== "external" && row.pay_method !== "membership" && row.pay_method !== "waived" && row.pricing !== "external";

@@ -21,7 +21,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
 
   const D = env.DB;
   const su = (await D.prepare(
-    `SELECT s.date, s.pay_method, c.title, c.category, c.instructor, c.day, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 15 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price FROM signups s JOIN classes c ON c.id=s.class_id
+    `SELECT s.date, s.pay_method, c.title, c.category, c.instructor, c.day, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2`).bind(lo, e0).all()).results as any[];
   const og = (await D.prepare("SELECT date, time, pay_method FROM opengym WHERE date >= ?1 AND date < ?2").bind(lo, e0).all()).results as any[];
   const pay = (await D.prepare("SELECT date, amount FROM payments WHERE date >= ?1 AND date < ?2").bind(s0, e0).all()).results as any[];

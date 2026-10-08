@@ -256,9 +256,10 @@ const owedOf = (p: any) =>
   + Math.max(0, -(pkBal(p) ?? 0)) * 27.5 - (Number(p.credit) || 0);
 const owesOf = (p: any) => owedOf(p) > 0.004;
 // base drop-in prices; per-class overrides (guest teachers etc.) ride in on each row's `price`
-const BASE_PRICE: Record<string, number> = { aerial: 30, flex: 12, opengym: 15 };
+const BASE_PRICE: Record<string, number> = { aerial: 30, flex: 12, opengym: 15, jam: 10 };
 const matchP = (i: any, k: string) =>
-  k === "opengym" ? (i.kind === "opengym" || i.title === "Community Jam")
+  k === "opengym" ? i.kind === "opengym"
+  : k === "jam" ? i.title === "Community Jam"
   : k === "flex" ? ["flex", "flow"].includes(i.category)
   : i.kind === "signups" && i.title !== "Community Jam" && !["flex", "flow"].includes(i.category);
 
@@ -483,7 +484,7 @@ function TallyTab() {
         const settle = (pd.items || []).filter(i => i.cover && (pd.purpose === "credit" || matchP(i, pd.purpose)))
           .map(i => ({ kind: i.kind, id: i.id }));
         const note = pd.purpose === "credit" ? "credit on file" :
-          pd.purpose === "opengym" ? "open gym / jam" : `single ${pd.purpose} class`;
+          pd.purpose === "opengym" ? "open gym" : pd.purpose === "jam" ? "community jam" : `single ${pd.purpose} class`;
         body = { op: "add_payment", user_id: id, amount: amt, method: pd.method, note, plan: { credits: 0, settle } };
       }
       const r = await fetch("/api/admin/people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -789,7 +790,7 @@ function TallyTab() {
                   const cur = (p.memberships || [])[0];
                   const memDef = cur && cur.end_date >= today() ? nextDay(cur.end_date) : today();
                   const amt = parseFloat(pd.amount) || 0;
-                  const single = ["aerial", "flex", "opengym"].includes(pd.purpose);
+                  const single = ["aerial", "flex", "opengym", "jam"].includes(pd.purpose);
                   const mine = single ? (pd.items || []).filter(i => matchP(i, pd.purpose)) : [];
                   const checked = mine.filter(i => i.cover).reduce((sum, i) => sum + i.price, 0);
                   const lo = amt - checked;
@@ -822,7 +823,8 @@ function TallyTab() {
                           <option value="membership">Open gym membership · $100/mo</option>
                           <option value="aerial">Single aerial class · $30</option>
                           <option value="flex">Single flex/flow class · $12</option>
-                          <option value="opengym">Open gym / jam session · $15</option>
+                          <option value="opengym">Open gym session · $15</option>
+                          <option value="jam">Community Jam · $10</option>
                           <option value="credit">Credit on file (decide later)</option>
                         </select>
                       </div>

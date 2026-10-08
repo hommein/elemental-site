@@ -60,7 +60,7 @@ export function normPhone(raw: string): string | null {
 export const PACK_CLASS_VALUE = 27.5;           // $110 pack / 4 classes
 export const PACK_PRICE = 110;
 export const priceOf = (r: { kind?: string; title?: string; category?: string }) =>
-  r.kind === "opengym" ? 15 : r.title === "Community Jam" ? 15
+  r.kind === "opengym" ? 15 : r.title === "Community Jam" ? 10
   : (r.category === "flex" || r.category === "flow") ? 12 : 30;
 // today's date in studio (Pacific) time — never UTC-date drift
 export const ptToday = () =>
