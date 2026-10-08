@@ -1161,6 +1161,7 @@ function InboxTab() {
   const [open, setOpen] = useState<number | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
+  const [copied, setCopied] = useState<number | null>(null);
   const load = () => fetch("/api/admin/inbox").then(r => r.json()).then(setData);
   useEffect(() => { load(); }, []);
   const post = (body: any) => fetch("/api/admin/inbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()).then(load);
@@ -1181,7 +1182,8 @@ function InboxTab() {
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 cursor-pointer" onClick={() => setOpen(open === m.id ? null : m.id)}>
                 {!m.read_at && <span className="w-2 h-2 rounded-full bg-ea-gold inline-block" title="unread" />}
                 <span className="font-semibold">{m.name}</span>
-                <a className="text-sm underline" href={`mailto:${m.email}`} onClick={e => e.stopPropagation()}>{m.email}</a>
+                <span className="text-sm select-all">{m.email}</span>
+                <button className="text-xs underline opacity-70 hover:opacity-100" title="Copy email address" onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(m.email); setCopied(m.id); setTimeout(() => setCopied(null), 1500); }}>{copied === m.id ? "copied!" : "copy"}</button>
                 <span className="text-xs opacity-60 ml-auto">{when(m.created_at)}</span>
               </div>
               <div className={"text-sm mt-2 whitespace-pre-wrap " + (open === m.id ? "" : "line-clamp-2")}>{m.message}</div>
@@ -1189,7 +1191,8 @@ function InboxTab() {
                 <div className="mt-3 flex flex-wrap gap-3 text-xs items-center">
                   {m.files && <span className="opacity-70">Attachments: {m.files} (only delivered by email)</span>}
                   <span className="opacity-70">Email list: {m.subscribed ? "yes" : "no"}</span>
-                  <a className="btn !py-1 !px-3 !text-xs" href={`mailto:${m.email}?subject=Re: your message to Elemental Aerial Arts`}>Reply</a>
+                  <a className="btn !py-1 !px-3 !text-xs" target="_blank" rel="noopener" href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(m.email)}&su=${encodeURIComponent("Re: your message to Elemental Aerial Arts")}&body=${encodeURIComponent("\n\n> " + m.message.replace(/\n/g, "\n> "))}`}>Reply in Gmail</a>
+                  <a className="underline" href={`mailto:${m.email}?subject=Re: your message to Elemental Aerial Arts`}>mail app</a>
                   <button className="underline" onClick={() => post({ op: "toggle_read", id: m.id })}>{m.read_at ? "Mark unread" : "Mark read"}</button>
                   <button className="underline text-red-700/80" onClick={() => { if (confirm("Delete this message?")) post({ op: "delete_message", id: m.id }); }}>Delete</button>
                 </div>)}
