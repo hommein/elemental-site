@@ -55,21 +55,19 @@ export default function Home() {
       </section>
 
 
-      <section className="container grid md:grid-cols-2 gap-10 items-start" id="contact">
+      <section className="container grid md:grid-cols-2 gap-10 items-stretch" id="contact">
         <div>
           <h2 className="mt-0 mb-3">Contact the Studio</h2>
           <p className="mb-5">Questions about classes, private lessons, or open studio time? Send us a note — we&apos;d love to hear from you.</p>
           <ContactForm />
-        </div>
-        <div>
-          <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] max-h-[300px] w-auto max-w-full mx-auto mb-5" />
-          <div className="rounded-[10px] bg-ea-cream p-5 text-sm leading-relaxed">
+          <div className="rounded-[10px] bg-ea-cream p-5 mt-6 text-sm leading-relaxed">
             <p className="m-0 font-semibold">Elemental Aerial Arts</p>
             <p className="m-0"><a href="https://maps.google.com/?q=22+W+Mission+St+Unit+B,+Santa+Barbara,+CA+93101">22 W Mission St Unit B, Santa Barbara, CA 93101</a></p>
             <p className="m-0"><a href="mailto:elementalaerialarts@gmail.com">elementalaerialarts@gmail.com</a></p>
             <p className="m-0"><a href="tel:+18053642037">(805) 364-2037</a> (call or text)</p>
           </div>
         </div>
+        <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full h-full object-cover max-md:h-[300px]" />
       </section>
 
       <section className="bg-ea-espresso text-center">
