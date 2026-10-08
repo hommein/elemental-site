@@ -1,3 +1,5 @@
+import ContactForm from "../components/ContactForm";
+
 export default function Home() {
   return (
     <>
@@ -53,14 +55,21 @@ export default function Home() {
       </section>
 
 
-      <section className="container grid md:grid-cols-2 gap-10 items-center">
+      <section className="container grid md:grid-cols-2 gap-10 items-start" id="contact">
         <div>
-          <h2 className="mt-0 mb-4">Open Gym</h2>
-          <p className="mb-6">Have your own apparatus or a self-led practice? Open studio training time is
-            available &amp; encouraged for members and regular students.</p>
-          <a className="btn" href="/classes">See Times &amp; How to Book</a>
+          <h2 className="mt-0 mb-3">Contact the Studio</h2>
+          <p className="mb-5">Questions about classes, private lessons, or open studio time? Send us a note — we&apos;d love to hear from you.</p>
+          <ContactForm />
         </div>
-        <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full max-md:order-first" />
+        <div>
+          <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full mb-5" />
+          <div className="rounded-[10px] bg-ea-cream p-5 text-sm leading-relaxed">
+            <p className="m-0 font-semibold">Elemental Aerial Arts</p>
+            <p className="m-0"><a href="https://maps.google.com/?q=22+W+Mission+St+Unit+B,+Santa+Barbara,+CA+93101">22 W Mission St Unit B, Santa Barbara, CA 93101</a></p>
+            <p className="m-0"><a href="mailto:elementalaerialarts@gmail.com">elementalaerialarts@gmail.com</a></p>
+            <p className="m-0"><a href="tel:+18053642037">(805) 364-2037</a> (call or text)</p>
+          </div>
+        </div>
       </section>
 
       <section className="bg-ea-espresso text-center">
@@ -70,7 +79,7 @@ export default function Home() {
             Sign up for our weekly email list to stay up to date with aerial and dance offerings,
             events, and studio news.
           </p>
-          <a className="btn btn--accent" href="/contact">Join the Email List</a>
+          <a className="btn btn--accent" href="/#contact">Join the Email List</a>
         </div>
       </section>
     </>
