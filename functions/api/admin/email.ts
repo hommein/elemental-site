@@ -23,6 +23,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     has_pack: (remBy[u.id] || 0) > 0,
     active_30d: recentSet.has(String(u.email).toLowerCase()),
   }));
+  const list = (await env.DB.prepare("SELECT email,name FROM email_list ORDER BY email").all()).results as any[];
+  const known = new Set(recipients.map(r => String(r.email).toLowerCase()));
+  const listSet = new Set(list.map(l => String(l.email).toLowerCase()));
+  for (const r of recipients) (r as any).on_list = listSet.has(String(r.email).toLowerCase());
+  for (const l of list) if (!known.has(String(l.email).toLowerCase())) recipients.push({ id: 0, name: l.name, email: l.email, has_pack: false, active_30d: false, on_list: true } as any);
   return json({ templates, recipients, configured: !!env.RESEND_API_KEY });
 };
 

@@ -1091,6 +1091,7 @@ function EmailTab() {
           {group("Everyone", rec)}
           {group("Has pack", rec.filter(r => r.has_pack))}
           {group("Active 30d", rec.filter(r => r.active_30d))}
+          {group("Email list", rec.filter(r => r.on_list))}
           <button className="text-xs underline" onClick={() => setSel(new Set())}>Clear</button>
         </div>
         <div className="border border-ea-accent/40 rounded max-h-96 overflow-y-auto bg-white">
@@ -1155,13 +1156,75 @@ function EmailTab() {
   );
 }
 
+function InboxTab() {
+  const [data, setData] = useState<any>(null);
+  const [open, setOpen] = useState<number | null>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [newName, setNewName] = useState("");
+  const load = () => fetch("/api/admin/inbox").then(r => r.json()).then(setData);
+  useEffect(() => { load(); }, []);
+  const post = (body: any) => fetch("/api/admin/inbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()).then(load);
+  if (!data) return <p>Loading…</p>;
+  if (!data.messages) return <p>Admins only.</p>;
+  const msgs = data.messages as any[];
+  const list = data.list as any[];
+  const when = (t: string) => new Date(t.replace(" ", "T") + "Z").toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  return (
+    <div className="grid lg:grid-cols-[1fr_20rem] gap-8">
+      <div>
+        <h2 className="text-xl mt-0 mb-1">Contact Messages</h2>
+        <p className="text-sm opacity-70 mt-0 mb-3">Sent from the website contact form. {msgs.filter(m => !m.sent).length > 0 && "Email delivery is not set up yet, so read them here."}</p>
+        {msgs.length === 0 && <p className="text-sm opacity-60">No messages yet.</p>}
+        <div className="grid gap-2">
+          {msgs.map(m => (
+            <div key={m.id} className={"rounded-lg border border-ea-accent/30 bg-white p-3 " + (m.read_at ? "opacity-70" : "")}>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 cursor-pointer" onClick={() => setOpen(open === m.id ? null : m.id)}>
+                {!m.read_at && <span className="w-2 h-2 rounded-full bg-ea-gold inline-block" title="unread" />}
+                <span className="font-semibold">{m.name}</span>
+                <a className="text-sm underline" href={`mailto:${m.email}`} onClick={e => e.stopPropagation()}>{m.email}</a>
+                <span className="text-xs opacity-60 ml-auto">{when(m.created_at)}</span>
+              </div>
+              <div className={"text-sm mt-2 whitespace-pre-wrap " + (open === m.id ? "" : "line-clamp-2")}>{m.message}</div>
+              {open === m.id && (
+                <div className="mt-3 flex flex-wrap gap-3 text-xs items-center">
+                  {m.files && <span className="opacity-70">Attachments: {m.files} (only delivered by email)</span>}
+                  <span className="opacity-70">Email list: {m.subscribed ? "yes" : "no"}</span>
+                  <a className="btn !py-1 !px-3 !text-xs" href={`mailto:${m.email}?subject=Re: your message to Elemental Aerial Arts`}>Reply</a>
+                  <button className="underline" onClick={() => post({ op: "toggle_read", id: m.id })}>{m.read_at ? "Mark unread" : "Mark read"}</button>
+                  <button className="underline text-red-700/80" onClick={() => { if (confirm("Delete this message?")) post({ op: "delete_message", id: m.id }); }}>Delete</button>
+                </div>)}
+            </div>))}
+        </div>
+      </div>
+      <div>
+        <h2 className="text-xl mt-0 mb-1">Email List ({list.length})</h2>
+        <p className="text-sm opacity-70 mt-0 mb-3">People who ticked "sign me up" on the contact form.</p>
+        <form className="flex gap-1 mb-3" onSubmit={e => { e.preventDefault(); if (newEmail) { post({ op: "add_list", email: newEmail, name: newName }); setNewEmail(""); setNewName(""); } }}>
+          <input className="border border-ea-accent/40 rounded px-2 py-1 text-sm w-24" placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)} />
+          <input className="border border-ea-accent/40 rounded px-2 py-1 text-sm flex-1 min-w-0" placeholder="email@…" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+          <button className="btn !py-1 !px-3 !text-xs" type="submit">Add</button>
+        </form>
+        <div className="border border-ea-accent/40 rounded max-h-[32rem] overflow-y-auto bg-white">
+          {list.length === 0 && <div className="text-xs opacity-50 p-2">Nobody yet.</div>}
+          {list.map(r => (
+            <div key={r.id} className="flex items-center gap-2 px-2 py-1 text-sm border-b border-ea-accent/10 last:border-0">
+              <span className="truncate">{r.name ? `${r.name} — ` : ""}{r.email}</span>
+              <button className="text-xs text-red-700/70 ml-auto" title="Remove" onClick={() => { if (confirm(`Remove ${r.email} from the list?`)) post({ op: "remove_list", id: r.id }); }}>✕</button>
+            </div>))}
+        </div>
+        <button className="text-xs underline mt-2" onClick={() => navigator.clipboard.writeText(list.map(r => r.email).join(", "))}>Copy all emails</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
-  const [tab, setTab] = useState<"schedule" | "tally" | "email" | "trends" | "posts">("tally");
+  const [tab, setTab] = useState<"schedule" | "tally" | "email" | "trends" | "posts" | "inbox">("tally");
   return (
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
       <div className="flex flex-wrap gap-2 mb-6">
-        {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["posts", "Events & Posts"], ["email", "Email"]] as const).map(([k, label]) => (
+        {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["posts", "Events & Posts"], ["email", "Email"], ["inbox", "Inbox"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={"px-4 py-2 sm:px-6 sm:py-2.5 text-sm sm:text-base rounded-full font-semibold tracking-wide transition-colors " +
               (tab === k ? "bg-ea-espresso text-ea-paper shadow" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
@@ -1169,7 +1232,7 @@ export default function Admin() {
           </button>
         ))}
       </div>
-      {tab === "tally" ? <TallyTab /> : tab === "trends" ? <TrendsTab /> : tab === "email" ? <EmailTab /> : tab === "posts" ? <PostsTab /> : <ScheduleTab />}
+      {tab === "tally" ? <TallyTab /> : tab === "trends" ? <TrendsTab /> : tab === "email" ? <EmailTab /> : tab === "posts" ? <PostsTab /> : tab === "inbox" ? <InboxTab /> : <ScheduleTab />}
     </section>
   );
 }
