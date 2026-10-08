@@ -33,7 +33,7 @@ export default function ContactForm() {
       </div>
       <label className="grid gap-1 text-sm"><span>Message</span><textarea className={field} name="message" required rows={5} maxLength={5000} /></label>
       <label className="grid gap-1 text-sm"><span>Attach files <span className="opacity-60">(optional, 8 MB max)</span></span>
-        <input className="text-sm" type="file" name="files" multiple /></label>
+        <input className="text-sm cursor-pointer rounded-md border border-dashed border-ea-espresso/30 bg-white p-2 transition hover:border-ea-accent hover:bg-ea-cream/40 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ea-espresso file:px-3 file:py-1.5 file:text-ea-paper file:text-sm hover:file:bg-ea-accent" type="file" name="files" multiple /></label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="subscribe" value="1" defaultChecked />Sign me up for the weekly email list</label>
       {state === "error" && <p className="m-0 text-sm text-red-700">{msg}</p>}
       <button className="btn justify-self-start" type="submit" disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Send Message"}</button>
