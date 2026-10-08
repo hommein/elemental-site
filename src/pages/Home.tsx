@@ -65,6 +65,7 @@ export default function Home() {
             <p className="m-0"><a href="https://maps.google.com/?q=22+W+Mission+St+Unit+B,+Santa+Barbara,+CA+93101">22 W Mission St Unit B, Santa Barbara, CA 93101</a></p>
             <p className="m-0"><a href="mailto:elementalaerialarts@gmail.com">elementalaerialarts@gmail.com</a></p>
             <p className="m-0"><a href="tel:+18053642037">(805) 364-2037</a> (call or text)</p>
+            <a className="btn mt-3 inline-flex items-center gap-2" href="https://www.instagram.com/elemental_aerial_arts/" target="_blank" rel="noopener">Follow Us on Instagram</a>
           </div></div>
         </div>
         <img src="/photos/studio.jpg" alt="The Elemental Arts studio" loading="lazy" className="rounded-[10px] w-full h-full object-cover max-md:h-[300px]" />

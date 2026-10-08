@@ -38,9 +38,17 @@ export default function Layout() {
               {user ? user.name.split(" ")[0] : "Sign In"}
             </NavLink>
             <a href="tel:+18053642037" className="text-sm font-semibold text-ea-espresso no-underline">(805) 364-2037</a>
+            <a href="https://www.instagram.com/elemental_aerial_arts/" target="_blank" rel="noopener" aria-label="Instagram" title="@elemental_aerial_arts"
+              className="w-9 h-9 grid place-items-center rounded-full bg-ea-espresso text-ea-paper hover:bg-ea-accent transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
+            </a>
           </div>
           {/* mobile: account + hamburger */}
           <div className="flex md:hidden items-center gap-3">
+            <a href="https://www.instagram.com/elemental_aerial_arts/" target="_blank" rel="noopener" aria-label="Instagram" title="@elemental_aerial_arts"
+              className="w-9 h-9 grid place-items-center rounded-full bg-ea-espresso text-ea-paper hover:bg-ea-accent transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
+            </a>
             <NavLink to="/account" className="text-sm font-medium text-ea-espresso no-underline">
               {user ? user.name.split(" ")[0] : "Sign In"}
             </NavLink>
