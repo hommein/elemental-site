@@ -1,8 +1,8 @@
 import { ptEpoch } from "./bookings";
-import { getUser, memberFor } from "../_lib";
+import { getUser } from "../_lib";
 interface Env { DB: D1Database; SESSION_SECRET: string }
 const ROOMS = ["Sun Room", "Foyer"];
-const CAP = 2; // spots per room per hour
+const CAP: Record<string, number> = { "Sun Room": 4, "Foyer": 2 }; // spots per room per hour
 
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let b: any; try { b = await request.json(); } catch { return err("Invalid JSON", 400); }
@@ -22,8 +22,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const day = new Date(date + "T00:00:00Z").getUTCDay();
   const em = email.trim().toLowerCase();
 
-  if (pay === "membership" && !(await memberFor(env, em, date)))
-    return err("No active open gym membership on that date for this email", 400);
+  // membership is self-reported; the studio confirms in person (admin roster shows pay method)
 
   const dup: any = await env.DB.prepare(
     "SELECT 1 x FROM opengym WHERE date=? AND time=? AND email=?"
@@ -48,7 +47,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let room: string | null = null, best = 0;
   for (const r of ROOMS) {
     if (blocked.has(r)) continue;
-    const left = CAP - (booked[r] || 0);
+    const left = (CAP[r] || 0) - (booked[r] || 0);
     if (left > best) { best = left; room = r; }
   }
   if (!room) return err("That time is fully booked or in use by a class", 409);

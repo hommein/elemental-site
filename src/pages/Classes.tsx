@@ -11,7 +11,7 @@ type Cls = {
 type Og = { date: string; time: string; room: string; n: number };
 type Sched = { week: string; dates: string[]; classes: Cls[]; opengym: Og[] };
 const ROOMS = ["Sun Room", "Foyer"];
-const OG_CAP = 2; // per room per hour
+const OG_CAP: Record<string, number> = { "Sun Room": 4, "Foyer": 2 }; // spots per room per hour
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const GUESTS = new Set(["Bethany", "Mel", "Daniel", "Kelsey"]);
@@ -221,12 +221,12 @@ export default function Classes() {
               {data?.dates[i] === todayISO && <span className="ml-2 text-xs bg-ea-gold/40 rounded-full px-2 py-0.5 align-middle">today</span>}
             </h3>
             <div className="flex flex-col gap-2">
+              {byDay[i].map(c => <Tile key={c.id} c={c} admin={adm} onPick={() => c.id < 0 ? setOg({ day: i, slot: c.time }) : setSel(c)} />)}
+              {byDay[i].length === 0 && <p className="text-sm text-ea-espresso/50">—</p>}
               <button onClick={() => setOg({ day: i })}
                 className="text-left border border-dashed border-ea-olive/50 rounded-lg px-2.5 py-2 text-sm text-ea-olive hover:bg-ea-olive/10">
                 + Book Open Gym
               </button>
-              {byDay[i].map(c => <Tile key={c.id} c={c} admin={adm} onPick={() => c.id < 0 ? setOg({ day: i, slot: c.time }) : setSel(c)} />)}
-              {byDay[i].length === 0 && <p className="text-sm text-ea-espresso/50">—</p>}
             </div>
           </div>
         ))}
@@ -240,15 +240,6 @@ export default function Classes() {
           <h3 key={d} className="font-serif text-base border-b border-ea-accent/50 pb-1 mb-1 text-center">
             {d}<span className="block text-xs font-sans text-ea-espresso/60">{data && prettyDate(data.dates[i])}</span>
           </h3>
-        ))}
-
-        {/* aligned open-gym row (top) */}
-        <div />
-        {DAYS.map((_, i) => (
-          <button key={"og" + i} onClick={() => setOg({ day: i })}
-            className="mb-2 border border-dashed border-ea-olive/50 rounded-lg px-2 py-1.5 text-xs text-ea-olive hover:bg-ea-olive/10">
-            + Book Open Gym
-          </button>
         ))}
 
         {/* hour gutter */}
@@ -269,6 +260,15 @@ export default function Classes() {
               </div>
             ))}
           </div>
+        ))}
+
+        {/* aligned open-gym row (bottom) */}
+        <div />
+        {DAYS.map((_, i) => (
+          <button key={"og" + i} onClick={() => setOg({ day: i })}
+            className="mt-2 border border-dashed border-ea-olive/50 rounded-lg px-2 py-1.5 text-xs text-ea-olive hover:bg-ea-olive/10">
+            + Book Open Gym
+          </button>
         ))}
 
       </div>
@@ -691,7 +691,7 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
         });
         if (busy) continue;
         const n = data.opengym.find(o => o.date === date && o.time === t && o.room === room)?.n || 0;
-        left += Math.max(0, OG_CAP - n);
+        left += Math.max(0, (OG_CAP[room] || 0) - n);
       }
       if (adm || `${date} ${t}` > ptNow()) out.push({ time: t, left });
     }
@@ -760,13 +760,16 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
             </div>
             {adm && slot && <OgRoster date={date} time={slot} />}
             <div className="text-sm">
-              <p className="font-medium mb-1">How will you pay? ($15{memberUntil != null && memberUntil >= date ? " — free with your membership" : ""})</p>
-              {memberUntil != null && memberUntil >= date && (
-                <label className="flex items-center gap-2 mb-1">
-                  <input type="radio" name="ogpay" checked={pay === "membership"} onChange={() => setPay("membership")} required />
-                  Open Gym membership — covered <span className="opacity-60">(active thru {memberUntil})</span>
-                </label>
-              )}
+              <div className="flex items-baseline justify-between border-b border-ea-accent/40 pb-1 mb-2">
+                <span className="font-serif text-lg">Payment</span>
+                <span className="text-xs text-ea-espresso/60">$15 per session · free with membership</span>
+              </div>
+              <label className="flex items-center gap-2 mb-1">
+                <input type="radio" name="ogpay" checked={pay === "membership"} onChange={() => setPay("membership")} required />
+                Open Gym membership {memberUntil != null && memberUntil >= date
+                  ? <span className="opacity-60">(active thru {memberUntil})</span>
+                  : <span className="opacity-60">(we&apos;ll confirm at the studio)</span>}
+              </label>
               <label className="flex items-center gap-2 mb-1">
                 <input type="radio" name="ogpay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
                 Venmo <span className="opacity-60">(note: "Aerial")</span>
