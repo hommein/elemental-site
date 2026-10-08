@@ -799,7 +799,7 @@ function TallyTab() {
                     if (v === "pack") patch.amount = "110";
                     if (v === "membership") { patch.amount = pd.method === "waived" ? "0" : "100"; patch.start = pd.start || memDef; }
                     setP(p.id, patch);
-                    if (["aerial", "flex", "opengym"].includes(v)) fetchItems(p.id, v);
+                    if (["aerial", "flex", "opengym", "jam"].includes(v)) fetchItems(p.id, v);
                   };
                   return (
                     <div className="mt-2 rounded-lg border border-ea-gold bg-ea-gold/10 px-2.5 py-2 text-xs space-y-1.5">
