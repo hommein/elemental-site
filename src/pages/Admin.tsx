@@ -1028,6 +1028,115 @@ function PostsTab() {
   );
 }
 
+// ---------- Studio News tab ----------
+type NewsPost = { id: number; title: string; date: string; img: string | null; body: string; links: string | null; active: number };
+type NDraft = { title: string; date: string; img: string; bodyText: string; linksText: string };
+const todayISO = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+const nToDraft = (n: NewsPost): NDraft => ({ title: n.title, date: n.date, img: n.img || "", bodyText: bodyToText(n.body), linksText: linksToText(n.links) });
+const nFromDraft = (d: NDraft, active: number) => ({ title: d.title.trim(), date: d.date, img: d.img || null, body: textToBody(d.bodyText), links: textToLinks(d.linksText) || null, active });
+const NewsEditor = ({ d, set }: { d: NDraft; set: (patch: Partial<NDraft>) => void }) => (
+  <div className="grid gap-2 sm:grid-cols-2 mt-2">
+    <Field label="Title" value={d.title} onChange={v => set({ title: v })} w="sm:col-span-2" />
+    <label className="block text-xs font-semibold text-ea-espresso/60">Date
+      <input type="date" value={d.date} onChange={e => set({ date: e.target.value })}
+        className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal text-ea-espresso" />
+    </label>
+    <Field label="Photo URL (optional, e.g. /news/photo.jpg)" value={d.img} onChange={v => set({ img: v })} />
+    <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Post — paragraphs separated by blank lines
+      <textarea value={d.bodyText} onChange={e => set({ bodyText: e.target.value })} rows={6}
+        className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal" />
+    </label>
+    <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Links (optional) — one per line: Label | https://url
+      <textarea value={d.linksText} onChange={e => set({ linksText: e.target.value })} rows={2}
+        className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal" />
+    </label>
+  </div>
+);
+
+function NewsTab() {
+  const [posts, setPosts] = useState<NewsPost[] | null>(null);
+  const [drafts, setDrafts] = useState<Record<number, NDraft>>({});
+  const [creating, setCreating] = useState(false);
+  const [nd, setNd] = useState<NDraft>({ title: "", date: todayISO(), img: "", bodyText: "", linksText: "" });
+  const [busy, setBusy] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+
+  const load = () => fetch("/api/admin/news").then(r => r.json()).then(d => { setPosts(d.posts || []); setDrafts({}); });
+  useEffect(() => { load(); }, []);
+  const call = async (payload: any) => {
+    const r = await fetch("/api/admin/news", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || "Failed"); return false; }
+    return true;
+  };
+  const dirtyIds = Object.keys(drafts).map(Number);
+  const saveAll = async () => {
+    setBusy(true);
+    for (const id of dirtyIds) {
+      const n = posts!.find(x => x.id === id)!;
+      if (!await call({ op: "update", id, post: nFromDraft(drafts[id], n.active) })) break;
+    }
+    setBusy(false); load();
+  };
+  const edit = (n: NewsPost, patch: Partial<NDraft>) =>
+    setDrafts(ds => ({ ...ds, [n.id]: { ...(ds[n.id] || nToDraft(n)), ...patch } }));
+
+  if (!posts) return <p className="text-ea-espresso/50">Loading…</p>;
+  const list = posts.filter(n => showInactive || n.active);
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <p className="m-0 text-sm text-ea-espresso/60">Blog-style updates on the Studio News page, newest first. Edit inline, then hit Save.</p>
+        <label className="text-xs ml-auto"><input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} /> show deactivated</label>
+      </div>
+      <div className="mb-3">
+        <button className="btn !py-1 !px-3 text-xs" onClick={() => setCreating(true)}>+ New Post</button>
+      </div>
+      {creating && (
+        <div className="rounded-[10px] border-2 border-ea-gold bg-white p-4 mb-3">
+          <NewsEditor d={nd} set={patch => setNd(x => ({ ...x, ...patch }))} />
+          <div className="flex gap-2 mt-3">
+            <button className="btn !py-1.5" disabled={busy} onClick={async () => {
+              setBusy(true);
+              if (await call({ op: "create", post: nFromDraft(nd, 1) })) { setCreating(false); setNd({ title: "", date: todayISO(), img: "", bodyText: "", linksText: "" }); load(); }
+              setBusy(false);
+            }}>Publish</button>
+            <button className="text-sm underline text-ea-espresso/60 px-2" onClick={() => setCreating(false)}>cancel</button>
+          </div>
+        </div>
+      )}
+      {list.map(n => {
+        const d = drafts[n.id];
+        return (
+          <div key={n.id} className={"rounded-[10px] border bg-white p-4 mb-3 " + (d ? "border-ea-gold border-2" : "border-ea-espresso/15") + (n.active ? "" : " opacity-60")}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <strong>{n.title}</strong>
+              <span className="text-xs text-ea-espresso/50">{n.date}</span>
+              {!n.active && <span className="text-xs rounded-full bg-ea-espresso/10 px-2 py-0.5">deactivated</span>}
+              {d && <span className="text-xs text-ea-gold font-semibold">· edited</span>}
+              <span className="ml-auto flex gap-2">
+                {n.active
+                  ? <button className="text-xs underline text-ea-espresso/60" onClick={async () => { if (confirm("Hide this post from the site?")) { await call({ op: "delete", id: n.id }); load(); } }}>deactivate</button>
+                  : <button className="text-xs underline text-ea-espresso/60" onClick={async () => { await call({ op: "restore", id: n.id }); load(); }}>restore</button>}
+              </span>
+            </div>
+            <NewsEditor d={d || nToDraft(n)} set={patch => edit(n, patch)} />
+          </div>
+        );
+      })}
+      {!list.length && <p className="text-sm text-ea-espresso/40">No posts yet.</p>}
+      {dirtyIds.length > 0 && (
+        <div className="sticky bottom-3 z-10 rounded-[10px] bg-ea-espresso text-ea-paper px-4 py-3 flex items-center gap-3 shadow-lg">
+          <span className="text-sm">{dirtyIds.length} post{dirtyIds.length > 1 ? "s" : ""} edited</span>
+          <button className="btn btn--accent !py-1.5 ml-auto" disabled={busy} onClick={saveAll}>{busy ? "Saving…" : "Save all changes"}</button>
+          <button className="text-sm underline text-ea-paper/70 px-2" onClick={() => setDrafts({})}>discard</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmailTab() {
   const [data, setData] = useState<any>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -1225,7 +1334,7 @@ function InboxTab({ onChange }: { onChange?: () => void }) {
 }
 
 export default function Admin() {
-  const [tab, setTab] = useState<"schedule" | "tally" | "email" | "trends" | "posts" | "inbox">("tally");
+  const [tab, setTab] = useState<"schedule" | "tally" | "email" | "trends" | "posts" | "news" | "inbox">("tally");
   const [unread, setUnread] = useState(0);
   const refreshUnread = () => fetch("/api/admin/inbox?count=1").then(r => r.json()).then(j => setUnread(j.unread || 0)).catch(() => {});
   useEffect(() => { refreshUnread(); const t = setInterval(refreshUnread, 60000); return () => clearInterval(t); }, []);
@@ -1233,7 +1342,7 @@ export default function Admin() {
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
       <div className="flex flex-wrap gap-2 mb-6">
-        {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["posts", "Events & Posts"], ["email", "Email"], ["inbox", "Inbox"]] as const).map(([k, label]) => (
+        {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["posts", "Events & Posts"], ["news", "Studio News"], ["email", "Email"], ["inbox", "Inbox"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={"px-4 py-2 sm:px-6 sm:py-2.5 text-sm sm:text-base rounded-full font-semibold tracking-wide transition-colors " +
               (tab === k ? "bg-ea-espresso text-ea-paper shadow" : k === "inbox" && unread > 0 ? "bg-ea-gold/30 text-ea-espresso hover:bg-ea-gold/50 ring-2 ring-ea-gold" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
@@ -1244,7 +1353,7 @@ export default function Admin() {
           </button>
         ))}
       </div>
-      {tab === "tally" ? <TallyTab /> : tab === "trends" ? <TrendsTab /> : tab === "email" ? <EmailTab /> : tab === "posts" ? <PostsTab /> : tab === "inbox" ? <InboxTab onChange={refreshUnread} /> : <ScheduleTab />}
+      {tab === "tally" ? <TallyTab /> : tab === "trends" ? <TrendsTab /> : tab === "email" ? <EmailTab /> : tab === "posts" ? <PostsTab /> : tab === "news" ? <NewsTab /> : tab === "inbox" ? <InboxTab onChange={refreshUnread} /> : <ScheduleTab />}
     </section>
   );
 }
