@@ -65,3 +65,27 @@ export const priceOf = (r: { kind?: string; title?: string; category?: string })
 // today's date in studio (Pacific) time — never UTC-date drift
 export const ptToday = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+
+/** Effective classes on a date: base weekly classes (active, one-off/end_date aware) with per-date overrides applied; cancelled ones dropped. */
+export async function classesOn(db: D1Database, date: string): Promise<{ id: number; room: string; start: number; duration_min: number }[]> {
+  const day = new Date(date + "T00:00:00Z").getUTCDay();
+  const { results: cls } = await db.prepare(
+    "SELECT id,time,duration_min,room,on_date,end_date FROM classes WHERE active=1 AND day=?"
+  ).bind(day).all();
+  const { results: ovs } = await db.prepare("SELECT * FROM overrides WHERE date=?").bind(date).all();
+  const om: Record<number, any> = {};
+  for (const o of ovs as any[]) om[o.class_id] = o;
+  const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const out: { id: number; room: string; start: number; duration_min: number }[] = [];
+  for (const c of cls as any[]) {
+    if (c.on_date && c.on_date !== date) continue;
+    if (c.end_date && date > c.end_date) continue;
+    const o = om[c.id];
+    if (o?.cancelled) continue;
+    const time = o?.time ? o.time : c.time;
+    const dur = o?.duration_min != null && o.duration_min !== "" ? Number(o.duration_min) : c.duration_min;
+    const room = o?.room ? o.room : c.room;
+    out.push({ id: c.id, room, start: toMin(time), duration_min: dur });
+  }
+  return out;
+}

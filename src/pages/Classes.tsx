@@ -677,23 +677,25 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
 
 
   const slots = useMemo(() => {
-    const cls = data.classes.filter(c => c.day === day);
+    const cls = data.classes.filter(c => c.day === day && !(c as any).cancelled);
+    const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+    const toT = (m: number) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+    const freeRooms = (s: number) => ROOMS.filter(room => !cls.some(c => c.room === room && toMin(c.time) < s + 60 && toMin(c.time) + c.duration_min > s));
     const out: { time: string; left: number }[] = [];
-    for (let h = 8; h <= 20; h++) {
-      const t = String(h).padStart(2, "0") + ":00";
+    // one entry per hour; if nothing is free on the hour, try the half hour (e.g. 6:30 PM) before giving up on that hour
+    let t = 8 * 60;
+    while (t + 60 <= 21 * 60) {
+      let picked: number | null = null;
+      for (const s of [t, t + 30]) { if (s + 60 <= 21 * 60 && freeRooms(s).length) { picked = s; break; } }
+      const s = picked ?? t;
       let left = 0;
-      for (const room of ROOMS) {
-        const busy = cls.some(c => {
-          if (c.room !== room) return false;
-          const [ch, cm] = c.time.split(":").map(Number);
-          const start = ch * 60 + cm;
-          return start < (h + 1) * 60 && start + c.duration_min > h * 60;
-        });
-        if (busy) continue;
-        const n = data.opengym.find(o => o.date === date && o.time === t && o.room === room)?.n || 0;
+      for (const room of freeRooms(s)) {
+        const n = data.opengym.filter(o => o.date === date && o.room === room && toMin(o.time) < s + 60 && toMin(o.time) + 60 > s).reduce((a, o) => a + o.n, 0);
         left += Math.max(0, (OG_CAP[room] || 0) - n);
       }
-      if (adm || `${date} ${t}` > ptNow()) out.push({ time: t, left });
+      const time = toT(s);
+      if (adm || `${date} ${time}` > ptNow()) out.push({ time, left });
+      t = picked != null ? picked + 60 : t + 60;
     }
     return out;
   }, [data, day, date, adm]);
