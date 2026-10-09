@@ -681,21 +681,30 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
     const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
     const toT = (m: number) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
     const freeRooms = (s: number) => ROOMS.filter(room => !cls.some(c => c.room === room && toMin(c.time) < s + 60 && toMin(c.time) + c.duration_min > s));
-    const out: { time: string; left: number }[] = [];
-    // one entry per hour; if nothing is free on the hour, try the half hour (e.g. 6:30 PM) before giving up on that hour
-    let t = 8 * 60;
-    while (t + 60 <= 21 * 60) {
-      let picked: number | null = null;
-      for (const s of [t, t + 30]) { if (s + 60 <= 21 * 60 && freeRooms(s).length) { picked = s; break; } }
-      const s = picked ?? t;
+    const spotsAt = (s: number) => {
       let left = 0;
       for (const room of freeRooms(s)) {
         const n = data.opengym.filter(o => o.date === date && o.room === room && toMin(o.time) < s + 60 && toMin(o.time) + 60 > s).reduce((a, o) => a + o.n, 0);
         left += Math.max(0, (OG_CAP[room] || 0) - n);
       }
-      const time = toT(s);
-      if (adm || `${date} ${time}` > ptNow()) out.push({ time, left });
-      t = picked != null ? picked + 60 : t + 60;
+      return left;
+    };
+    const out: { time: string; left: number }[] = [];
+    // Walk the day in one-hour steps. At each step offer the start (on the hour or half past)
+    // that has the most room free, so slots line up with the class schedule (e.g. 12:30 after an 11:30 class).
+    // Hours where both rooms are in class are skipped. Next slot never overlaps the previous one.
+    let t = 8 * 60;
+    while (t + 60 <= 21 * 60) {
+      let best: number | null = null, bestRooms = 0, bestLeft = 0;
+      for (const s of [t, t + 30]) {
+        if (s + 60 > 21 * 60) continue;
+        const rooms = freeRooms(s).reduce((a, r) => a + (OG_CAP[r] || 0), 0);
+        if (rooms > bestRooms) { best = s; bestRooms = rooms; bestLeft = spotsAt(s); }
+      }
+      if (best == null) { t += 60; continue; }
+      const time = toT(best);
+      if (adm || `${date} ${time}` > ptNow()) out.push({ time, left: bestLeft });
+      t = best + 60;
     }
     return out;
   }, [data, day, date, adm]);
@@ -753,7 +762,7 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
                         : "border-black/15 hover:border-ea-olive/60"}`}>
                     <span>{fmt(sl.time)}</span>
                     <span className={`text-xs ${off ? "text-black/30" : on ? "text-white/80" : "text-ea-espresso/60"}`}>
-                      {off ? "unavailable" : `${sl.left} spot${sl.left === 1 ? "" : "s"}`}
+                      {off ? "full" : `${sl.left} spot${sl.left === 1 ? "" : "s"}`}
                     </span>
                   </button>
                 );
