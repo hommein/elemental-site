@@ -749,25 +749,28 @@ function OpenGymModal({ day, initSlot, data, onClose }: { day: number; initSlot?
           </>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              {slots.map(sl => {
-                const on = slot === sl.time;
-                const off = sl.left === 0 && !adm;
-                return (
-                  <button type="button" key={sl.time} disabled={off}
-                    onClick={() => setSlot(sl.time)}
-                    className={`border rounded-lg px-3 py-1 text-sm flex items-center justify-between ${
-                      off ? "bg-black/5 border-black/10 text-black/35 cursor-not-allowed"
-                        : on ? "bg-ea-olive text-white border-ea-olive"
-                        : "border-black/15 hover:border-ea-olive/60"}`}>
-                    <span>{fmt(sl.time)}</span>
-                    <span className={`text-xs ${off ? "text-black/30" : on ? "text-white/80" : "text-ea-espresso/60"}`}>
-                      {off ? "full" : `${sl.left} spot${sl.left === 1 ? "" : "s"}`}
-                    </span>
-                  </button>
-                );
-              })}
-              {slots.every(s => s.left === 0) && <p className="text-sm text-ea-espresso/60">No open slots this day.</p>}
+            <div>
+              <p className="text-sm mb-1 text-ea-espresso/70">Pick a start time (1 hour):</p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                {slots.map(sl => {
+                  const on = slot === sl.time;
+                  const off = sl.left === 0 && !adm;
+                  return (
+                    <button type="button" key={sl.time} disabled={off} title={off ? "Full" : `${sl.left} spots left`}
+                      onClick={() => setSlot(sl.time)}
+                      className={`rounded-full px-2 py-1.5 text-sm text-center border ${
+                        off ? "bg-black/5 border-black/10 text-black/30 line-through cursor-not-allowed"
+                          : on ? "bg-ea-olive text-white border-ea-olive"
+                          : "border-black/15 hover:border-ea-olive/60"}`}>
+                      {fmt(sl.time)}
+                    </button>
+                  );
+                })}
+              </div>
+              {slots.every(s => s.left === 0) && <p className="text-sm text-ea-espresso/60 mt-1">No open slots this day.</p>}
+              {slot && (() => { const sl = slots.find(x => x.time === slot); return sl ? (
+                <p className="text-sm mt-2">Selected: <b>{fmt(slot)}</b> – {sl.left === 0 ? "full" : `${sl.left} spot${sl.left === 1 ? "" : "s"} left`}</p>
+              ) : null; })()}
             </div>
             {adm && slot && <OgRoster date={date} time={slot} />}
             <div className="text-sm">
