@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
+import Lightbox from "../components/Lightbox";
 
 type Post = { id: number; title: string; date: string; img?: string | null; body: string[]; links?: { label: string; url: string }[] | null };
 
 export default function News() {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [open, setOpen] = useState<Post | null>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(null); };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [open]);
   useEffect(() => {
     fetch("/api/news").then(r => r.json()).then(d => setPosts(d.posts || [])).catch(() => setPosts([]));
   }, []);
@@ -52,14 +46,7 @@ export default function News() {
         )}
       </section>
 
-      {open && open.img && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setOpen(null)} role="dialog" aria-modal="true" aria-label={open.title}>
-          <button type="button" onClick={() => setOpen(null)} aria-label="Close"
-            className="absolute top-3 right-4 text-white/90 hover:text-white text-4xl leading-none bg-transparent border-0 cursor-pointer">&times;</button>
-          <img src={open.img} alt={open.title} onClick={e => e.stopPropagation()}
-            className="max-w-full max-h-[92vh] rounded-[10px] shadow-xl cursor-default" />
-        </div>
-      )}
+      <Lightbox src={open?.img || null} alt={open?.title} onClose={() => setOpen(null)} />
     </>
   );
 }
