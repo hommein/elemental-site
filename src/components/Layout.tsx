@@ -7,8 +7,11 @@ const links = [
   { to: "/classes", label: "Classes" },
   { to: "/events", label: "Events" },
   { to: "/news", label: "Studio News" },
-  { to: "/merch", label: "Merch" },
   { to: "/contact", label: "Contact" },
+];
+const more = [
+  { to: "/merch", label: "Merch" },
+  { to: "/open-gym", label: "Open Gym" },
 ];
 
 export default function Layout() {
@@ -17,6 +20,7 @@ export default function Layout() {
   const loc = useLocation();
   useEffect(() => { me().then(setUserState); return onUser(setUserState); }, []);
   useEffect(() => { setOpen(false); }, [loc.pathname]);
+  const moreActive = more.some((l) => loc.pathname.startsWith(l.to));
   const linkCls = ({ isActive }: { isActive: boolean }) =>
     `text-sm font-medium tracking-wide no-underline transition-colors hover:text-ea-brown ${
       isActive ? "text-ea-brown underline underline-offset-8 decoration-ea-accent" : "text-ea-espresso"}`;
@@ -32,6 +36,19 @@ export default function Layout() {
             {links.map((l) => (
               <NavLink key={l.to} to={l.to} end={l.to === "/"} className={linkCls}>{l.label}</NavLink>
             ))}
+            <div className="relative group">
+              <button type="button" className={`${moreActive ? "text-ea-brown underline underline-offset-8 decoration-ea-accent" : "text-ea-espresso"} text-sm font-medium tracking-wide hover:text-ea-brown transition-colors bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1`}>
+                More <span aria-hidden="true" className="text-xs">▾</span>
+              </button>
+              <div className="absolute left-1/2 -translate-x-1/2 top-full pt-3 hidden group-hover:block group-focus-within:block z-50">
+                <div className="bg-ea-paper border border-ea-accent-soft/50 rounded-[10px] shadow-lg py-2 min-w-[160px] flex flex-col">
+                  {more.map((l) => (
+                    <NavLink key={l.to} to={l.to} className={({ isActive }) =>
+                      `px-5 py-2 no-underline font-medium whitespace-nowrap hover:bg-ea-accent-soft/20 ${isActive ? "text-ea-brown" : "text-ea-espresso"}`}>{l.label}</NavLink>
+                  ))}
+                </div>
+              </div>
+            </div>
           </nav>
           <div className="hidden md:flex items-center gap-4">
             <NavLink to="/account" className="text-sm font-medium text-ea-espresso no-underline hover:text-ea-brown">
@@ -68,7 +85,7 @@ export default function Layout() {
         {/* mobile dropdown */}
         {open && (
           <nav className="md:hidden border-t border-ea-accent-soft/40 bg-ea-paper px-4 pb-4 pt-2 flex flex-col shadow-lg">
-            {links.map((l) => (
+            {[...links, ...more].map((l) => (
               <NavLink
                 key={l.to} to={l.to} end={l.to === "/"}
                 className={({ isActive }) =>

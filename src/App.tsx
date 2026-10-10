@@ -5,6 +5,7 @@ import Classes from "./pages/Classes";
 import Events from "./pages/Events";
 import News from "./pages/News";
 import Merch from "./pages/Merch";
+import OpenGym from "./pages/OpenGym";
 import Account from "./pages/Account";
 import Admin from "./pages/Admin";
 import Contact from "./pages/Contact";
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/events" element={<Events />} />
           <Route path="/news" element={<News />} />
           <Route path="/merch" element={<Merch />} />
+          <Route path="/open-gym" element={<OpenGym />} />
           <Route path="/account" element={<Account />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/contact" element={<Contact />} />
