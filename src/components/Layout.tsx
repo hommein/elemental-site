@@ -37,14 +37,14 @@ export default function Layout() {
               <NavLink key={l.to} to={l.to} end={l.to === "/"} className={linkCls}>{l.label}</NavLink>
             ))}
             <div className="relative group">
-              <button type="button" className={`${moreActive ? "text-ea-brown underline underline-offset-8 decoration-ea-accent" : "text-ea-espresso"} text-sm font-medium tracking-wide hover:text-ea-brown transition-colors bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1`}>
+              <button type="button" className={`${linkCls({ isActive: moreActive })} bg-transparent border-0 p-0 m-0 cursor-pointer inline-flex items-center gap-1 font-[inherit] leading-[inherit]`}>
                 More <span aria-hidden="true" className="text-xs">▾</span>
               </button>
               <div className="absolute left-1/2 -translate-x-1/2 top-full pt-3 hidden group-hover:block group-focus-within:block z-50">
                 <div className="bg-ea-paper border border-ea-accent-soft/50 rounded-[10px] shadow-lg py-2 min-w-[160px] flex flex-col">
                   {more.map((l) => (
                     <NavLink key={l.to} to={l.to} className={({ isActive }) =>
-                      `px-5 py-2 no-underline font-medium whitespace-nowrap hover:bg-ea-accent-soft/20 ${isActive ? "text-ea-brown" : "text-ea-espresso"}`}>{l.label}</NavLink>
+                      `px-5 py-2 text-sm font-medium tracking-wide no-underline whitespace-nowrap transition-colors hover:text-ea-brown hover:bg-ea-accent-soft/20 ${isActive ? "text-ea-brown" : "text-ea-espresso"}`}>{l.label}</NavLink>
                   ))}
                 </div>
               </div>
