@@ -8,6 +8,7 @@ import Merch from "./pages/Merch";
 import OpenGym from "./pages/OpenGym";
 import Account from "./pages/Account";
 import Admin from "./pages/Admin";
+import Instructor from "./pages/Instructor";
 import Contact from "./pages/Contact";
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/classes" element={<Classes />} />
+          <Route path="/instructor" element={<Instructor />} />
           <Route path="/events" element={<Events />} />
           <Route path="/news" element={<News />} />
           <Route path="/merch" element={<Merch />} />

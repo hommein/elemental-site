@@ -72,6 +72,7 @@ export default function Account() {
           <PhoneBox initial={user.phone || ""} />
           <PackBox />
           {user.is_admin && <a className="btn btn--accent text-center" href="/admin">Studio Admin</a>}
+          {(user.is_admin || user.is_instructor) && <a className="btn btn--accent text-center" href="/instructor">Instructor Check-In</a>}
           <button className="btn" onClick={logout}>Sign out</button>
         </div>
       ) : (

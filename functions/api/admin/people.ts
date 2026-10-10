@@ -31,7 +31,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
     weekEnd = end.toISOString().slice(0, 10);
   }
 
-  const users = (await env.DB.prepare(`SELECT id,name,email,phone,created_at,
+  const users = (await env.DB.prepare(`SELECT id,name,email,phone,created_at,is_instructor,instructor_name,
     (SELECT max(end_date) FROM memberships m WHERE m.user_id=users.id) AS member_until
     FROM users ORDER BY name`).all()).results as any[];
   const su = (await env.DB.prepare(
@@ -100,6 +100,11 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     await D.prepare(`UPDATE ${tbl} SET paid=1 WHERE id=?1`).bind(Number(b.id)).run();
     return json({ ok: true, credit_used });
   }
+  if (b.op === "set_instructor") {
+    await D.prepare("UPDATE users SET is_instructor=?2, instructor_name=?3 WHERE id=?1")
+      .bind(Number(b.id), b.on ? 1 : 0, b.on && b.instructor_name ? String(b.instructor_name).trim().slice(0, 60) : null).run();
+    return json({ ok: true });
+  }
   if (b.op === "waive") {
     const tbl = b.kind === "opengym" ? "opengym" : "signups";
     if (b.on) await D.prepare(`UPDATE ${tbl} SET pay_method='waived', paid=1 WHERE id=?1`).bind(Number(b.id)).run();
@@ -125,6 +130,18 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
   if (b.op === "add_pack") {
     if (!b.user_id || !(b.size > 0)) return json({ error: "user_id + size" }, 400);
     await D.prepare("INSERT INTO classpacks (user_id,size,remaining,note) VALUES (?1,?2,?2,?3)").bind(b.user_id, b.size, b.note || null).run();
+  } else if (b.op === "set_balance") {
+    // set a member's total pack balance (sum of remaining across packs) to an absolute number.
+    // used when transferring members from the old system with whatever they had left.
+    if (!b.user_id || typeof b.balance !== "number" || !Number.isFinite(b.balance)) return json({ error: "user_id + balance" }, 400);
+    const bal = Math.round(b.balance);
+    const cur = await D.prepare("SELECT COALESCE(SUM(remaining),0) AS s, COUNT(*) AS n, MAX(id) AS last FROM classpacks WHERE user_id=?1").bind(b.user_id).first<any>();
+    const delta = bal - (cur?.s || 0);
+    if (cur?.n > 0) {
+      await D.prepare("UPDATE classpacks SET remaining = remaining + ?2, note = COALESCE(?3, note) WHERE id=?1").bind(cur.last, delta, b.note || null).run();
+    } else {
+      await D.prepare("INSERT INTO classpacks (user_id,size,remaining,note) VALUES (?1,?2,?2,?3)").bind(b.user_id, bal, b.note || "starting balance (transferred)").run();
+    }
   } else if (b.op === "adjust_pack") {
     await D.prepare("UPDATE classpacks SET remaining = remaining + ?2 WHERE id=?1").bind(b.id, b.delta | 0).run();
   } else if (b.op === "delete_pack") {

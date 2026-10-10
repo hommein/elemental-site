@@ -406,6 +406,7 @@ function TallyTab() {
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [pmEdit, setPmEdit] = useState<{ id: number; amount: string; method: string; date: string } | null>(null);
+  const [packEdit, setPackEdit] = useState<{ uid: number; value: string; note: string } | null>(null);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("active");
   const range = () => {
@@ -667,6 +668,13 @@ function TallyTab() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 border-b border-ea-accent/20">
               <strong className="text-lg">{p.name || p.email}</strong>
               <span className="text-sm opacity-60">{p.email}{p.phone ? " · " + p.phone : ""}</span>
+              {p.id && (p.is_instructor
+                ? <span className="text-xs px-2 py-0.5 rounded-full bg-ea-olive/15 text-ea-olive font-semibold flex items-center gap-1">instructor
+                    <input className="w-24 rounded border border-ea-olive/30 px-1 bg-white font-normal" defaultValue={p.instructor_name || ""} placeholder="name on schedule" title="Must match the instructor name on the schedule"
+                      onBlur={e => { if (e.target.value !== (p.instructor_name || "")) post({ op: "set_instructor", id: p.id, on: 1, instructor_name: e.target.value }); }} />
+                    <button className="underline opacity-60" disabled={busy} onClick={() => { if (confirm("Remove instructor access?")) post({ op: "set_instructor", id: p.id, on: 0 }); }}>×</button>
+                  </span>
+                : <button className="text-xs underline opacity-40 hover:opacity-80" disabled={busy} onClick={() => post({ op: "set_instructor", id: p.id, on: 1, instructor_name: (p.name || "").split(" ")[0] })}>make instructor</button>)}
               <span className="w-full sm:w-auto sm:ml-auto flex flex-wrap items-center justify-start sm:justify-end gap-2">
                 <span className="text-sm font-semibold">{taken} visit{taken === 1 ? "" : "s"} this {scale}</span>
                 <span className={"text-xs px-2 py-0.5 rounded-full font-semibold " + (pack ? "bg-ea-cream text-ea-espresso" : "bg-black/5 text-black/50")}>
@@ -735,7 +743,20 @@ function TallyTab() {
                 <div className="text-[11px] uppercase tracking-wide opacity-50 mb-1">Pack & payments</div>
                 <div className="text-sm flex flex-wrap items-center gap-2">
                   {pack ? <span>Pack: <b>{pack.remaining}</b> left</span> : <em className="opacity-60">no class pack</em>}
+                  {p.id && <button className="text-xs underline opacity-60 hover:opacity-100" disabled={busy}
+                    onClick={() => setPackEdit(e => e?.uid === p.id ? null : { uid: p.id, value: String(pack ? pack.remaining : 0), note: "" })}>{packEdit?.uid === p.id ? "cancel" : "set balance"}</button>}
                 </div>
+                {p.id && packEdit?.uid === p.id && (() => { const pe = packEdit!; return (
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm bg-ea-cream/40 rounded-lg p-2">
+                    <label className="text-xs opacity-70">classes left</label>
+                    <input type="number" step="1" className="w-20 px-2 py-1 rounded border border-ea-accent/40 bg-white" value={pe.value}
+                      onChange={e => setPackEdit({ ...pe, value: e.target.value })} />
+                    <input type="text" placeholder="note (optional, e.g. from old system)" className="flex-1 min-w-40 px-2 py-1 rounded border border-ea-accent/40 bg-white"
+                      value={pe.note} onChange={e => setPackEdit({ ...pe, note: e.target.value })} />
+                    <button className="btn text-xs !px-2.5 !py-1" disabled={busy || pe.value.trim() === "" || isNaN(Number(pe.value))}
+                      onClick={async () => { await post({ op: "set_balance", user_id: p.id, balance: Number(pe.value), note: pe.note || undefined }); setPackEdit(null); }}>Save</button>
+                    <span className="text-[11px] opacity-50 w-full">Sets the total classes left on this member's pack. Negative = overdrawn.</span>
+                  </div>); })()}
                 {p.payments.length > 0 && <div className="mt-2">
                   <div className="text-[11px] uppercase tracking-wide opacity-50 mb-0.5">Payments logged</div>
                   {p.payments.map((pm: any) => (
@@ -1393,7 +1414,7 @@ export default function Admin() {
   useEffect(() => { refreshUnread(); const t = setInterval(refreshUnread, 60000); return () => clearInterval(t); }, []);
   return (
     <section className="container py-8">
-      <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
+      <div className="flex flex-wrap items-center gap-3 mb-4"><h1 className="font-serif text-3xl">Studio Admin</h1><a href="/instructor" className="text-sm underline opacity-70 hover:opacity-100">Switch to instructor view →</a></div>
       <div className="flex flex-wrap gap-2 mb-6">
         {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["news", "Studio News"], ["posts", "Events & Posts"], ["email", "Email"], ["inbox", "Inbox"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}

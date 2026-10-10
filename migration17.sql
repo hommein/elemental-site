@@ -1,0 +1,3 @@
+ALTER TABLE users ADD COLUMN is_instructor INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN instructor_name TEXT;
+ALTER TABLE signups ADD COLUMN checked_in INTEGER DEFAULT 0;
