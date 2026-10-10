@@ -22,13 +22,16 @@ export default function OpenGym() {
       </PageHero>
 
       <section className="container !py-8 max-w-[760px]">
-        <p className="text-center mt-0 mb-8">
-          <Link className="btn" to="/classes">Book Open Gym</Link>
-        </p>
+        <div className="rounded-[10px] bg-ea-cream p-5 text-center mb-8">
+          <p className="mt-0 mb-3">
+            To book open gym, go to the <Link to="/classes">class schedule</Link>, pick the day you want, and scroll to the bottom of that day — the <strong>Book Open Gym</strong> button is there.
+          </p>
+          <Link className="btn" to="/classes">Go to the Class Schedule</Link>
+        </div>
 
         <Q q="How do I reserve open time at EA?">
           <ul>
-            <li>Pick a day and time on the <Link to="/classes">Classes</Link> page and use the "Book Open Gym" button. Up to 6 aerialists can share a block.</li>
+            <li>Go to the <Link to="/classes">class schedule</Link>, find the day you want, and use the "Book Open Gym" button at the bottom of that day. Up to 6 aerialists can share a block.</li>
             <li>If a class is running in the main room, you are limited to the Front Studio Lounge points. If no class is running in the main room, you are welcome to any point.</li>
             <li>EA is a shared space with Selah Dance and other awesome auxiliary dance groups! Cross check studio availability on our <a href={GCAL} target="_blank" rel="noreferrer">Google Calendar</a>.</li>
             <li>Bring your own apparatus. If you need to borrow an apparatus, contact us at <Mail />.</li>
