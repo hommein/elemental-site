@@ -1395,7 +1395,7 @@ export default function Admin() {
     <section className="container py-8">
       <h1 className="font-serif text-3xl mb-4">Studio Admin</h1>
       <div className="flex flex-wrap gap-2 mb-6">
-        {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["posts", "Events & Posts"], ["news", "Studio News"], ["email", "Email"], ["inbox", "Inbox"]] as const).map(([k, label]) => (
+        {([["tally", "Members & Payments"], ["trends", "Trends (90 Days)"], ["schedule", "Schedule Editor"], ["news", "Studio News"], ["posts", "Events & Posts"], ["email", "Email"], ["inbox", "Inbox"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={"px-4 py-2 sm:px-6 sm:py-2.5 text-sm sm:text-base rounded-full font-semibold tracking-wide transition-colors " +
               (tab === k ? "bg-ea-espresso text-ea-paper shadow" : k === "inbox" && unread > 0 ? "bg-ea-gold/30 text-ea-espresso hover:bg-ea-gold/50 ring-2 ring-ea-gold" : "bg-ea-cream/70 text-ea-espresso/70 hover:bg-ea-cream")}>
