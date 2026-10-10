@@ -749,8 +749,10 @@ function TallyTab() {
                 {p.id && packEdit?.uid === p.id && (() => { const pe = packEdit!; return (
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm bg-ea-cream/40 rounded-lg p-2">
                     <label className="text-xs opacity-70">classes left</label>
-                    <input type="number" step="1" className="w-20 px-2 py-1 rounded border border-ea-accent/40 bg-white" value={pe.value}
-                      onChange={e => setPackEdit({ ...pe, value: e.target.value })} />
+                    <button type="button" className="w-8 h-8 rounded border border-ea-accent/40 bg-white font-bold" title="flip sign (negative = overdrawn)"
+                      onClick={() => setPackEdit({ ...pe, value: pe.value.startsWith("-") ? pe.value.slice(1) : "-" + pe.value.replace(/^-/, "") })}>±</button>
+                    <input type="text" inputMode="numeric" pattern="-?[0-9]*" className="w-20 px-2 py-1 rounded border border-ea-accent/40 bg-white" value={pe.value}
+                      onChange={e => setPackEdit({ ...pe, value: e.target.value.replace(/[^-0-9]/g, "") })} />
                     <input type="text" placeholder="note (optional, e.g. from old system)" className="flex-1 min-w-40 px-2 py-1 rounded border border-ea-accent/40 bg-white"
                       value={pe.note} onChange={e => setPackEdit({ ...pe, note: e.target.value })} />
                     <button className="btn text-xs !px-2.5 !py-1" disabled={busy || pe.value.trim() === "" || isNaN(Number(pe.value))}
