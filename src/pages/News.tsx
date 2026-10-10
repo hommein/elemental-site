@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageHero from "../components/PageHero";
 import Lightbox from "../components/Lightbox";
 
 type Post = { id: number; title: string; date: string; img?: string | null; body: string[]; links?: { label: string; url: string }[] | null };
@@ -12,14 +13,9 @@ export default function News() {
 
   return (
     <>
-      <section className="bg-ea-espresso text-center">
-        <div className="container !py-10">
-          <h1 className="text-ea-paper mb-2">Studio News</h1>
-          <p className="text-ea-paper/80 max-w-[560px] mx-auto m-0">
-            Casual updates from the studio — schedule changes, new classes, and what we've been up to.
-          </p>
-        </div>
-      </section>
+      <PageHero title="Studio News">
+        Casual updates from the studio — schedule changes, new classes, and what we've been up to.
+      </PageHero>
 
       <section className="container !py-8">
         {posts === null && <p className="text-ea-espresso/50">Loading…</p>}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageHero from "../components/PageHero";
 
 type Ev = {
   id: number; section: string; img?: string | null; title: string; when_text?: string | null;
@@ -53,14 +54,9 @@ export default function Events() {
 
   return (
     <>
-      <section className="bg-ea-espresso text-center">
-        <div className="container !py-14">
-          <h1 className="text-ea-paper mb-2">Featured Events</h1>
-          <p className="text-ea-paper/80 max-w-[560px] mx-auto m-0">
-            Major events & retreats — past & future! Performances, showcases, and community celebrations.
-          </p>
-        </div>
-      </section>
+      <PageHero title="Featured Events">
+        Major events & retreats — past & future! Performances, showcases, and community celebrations.
+      </PageHero>
 
       {!d && <section><div className="container text-center text-ea-espresso/50">Loading…</div></section>}
 
