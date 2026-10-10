@@ -62,6 +62,26 @@ export const PACK_PRICE = 110;
 export const priceOf = (r: { kind?: string; title?: string; category?: string }) =>
   r.kind === "opengym" ? 15 : r.title === "Community Jam" ? 10
   : (r.category === "flex" || r.category === "flow") ? 12 : 30;
+export const MULTI_CLASS_PRICE = 15;          // 2nd+ class on the same day
+export const basePrice = (c: any) => c.price ?? priceOf(c);
+/** Price for a class signup: full price for the first class of the day, $15 (or less) for every extra class that day. */
+export async function signupPrice(D: D1Database, email: string, date: string, cls: any, excludeId?: number) {
+  const base = basePrice(cls);
+  if (cls.pricing === "external") return base;
+  const r: any = await D.prepare("SELECT COUNT(*) n FROM signups WHERE lower(email)=?1 AND date=?2 AND id != ?3")
+    .bind(email.toLowerCase(), date, excludeId ?? -1).first();
+  return r?.n > 0 ? Math.min(base, MULTI_CLASS_PRICE) : base;
+}
+/** Re-price every class signup for an email on a date (after a cancel): earliest = full, the rest = $15 cap. */
+export async function repriceDay(D: D1Database, email: string, date: string) {
+  const rows = (await D.prepare(`SELECT s.id, c.price, c.title, c.category, c.pricing FROM signups s JOIN classes c ON c.id=s.class_id
+    WHERE lower(s.email)=?1 AND s.date=?2 ORDER BY c.time, s.id`).bind(email.toLowerCase(), date).all()).results as any[];
+  for (let i = 0; i < rows.length; i++) {
+    const b = basePrice(rows[i]);
+    const pr = rows[i].pricing === "external" || i === 0 ? b : Math.min(b, MULTI_CLASS_PRICE);
+    await D.prepare("UPDATE signups SET price=?1 WHERE id=?2").bind(pr, rows[i].id).run();
+  }
+}
 // today's date in studio (Pacific) time — never UTC-date drift
 export const ptToday = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });

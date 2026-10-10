@@ -541,7 +541,7 @@ function SignupModal({ cls, onClose }: { cls: Cls; onClose: (changed: boolean) =
         <p className="text-sm text-ea-espresso/70 mb-3">
           {DAYS[cls.day]} {prettyDate(cls.date)} at {fmt(cls.time)}{cls.instructor ? ` with ${cls.instructor}` : ""}
         </p>
-        {cls.price != null && <p className="font-medium mb-2">${cls.price} per class</p>}
+        {cls.price != null && <p className="font-medium mb-2">${cls.price} per class{cls.pricing === "dropin" && cls.price > 15 && <span className="font-normal text-ea-espresso/60"> · extra classes the same day are $15 each</span>}</p>}
         <p className="text-sm mb-3 whitespace-pre-wrap">
           Reserve your seat here — payment goes directly to the instructor{cls.instructor ? ` (${cls.instructor})` : ""}.
           {cls.pay_note ? `
@@ -561,6 +561,18 @@ ${cls.pay_note}` : ""}
   const [packLeft, setPackLeft] = useState<number | null>(null);
   const [memberUntil, setMemberUntil] = useState<string | null>(null);
   const [adm, setAdm] = useState(false);
+  const [sameDay, setSameDay] = useState(0);   // other classes already booked this day
+  const multi = sameDay > 0 && !isJam && !isDon && !isExt;
+  useEffect(() => {
+    const em = email.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { setSameDay(0); return; }
+    const t = setTimeout(() => {
+      fetch("/api/bookings?email=" + encodeURIComponent(em)).then(r => r.ok ? r.json() : null).then(j => {
+        setSameDay((j?.bookings || []).filter((b: any) => b.kind === "class" && b.date === cls.date).length);
+      }).catch(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+  }, [email, cls.date]);
   useEffect(() => {
     me().then(u => {
       if (!u) return;
@@ -631,7 +643,7 @@ ${cls.pay_note}` : ""}
               {packLeft != null && !isJam && !isDon && (
                 <label className="flex items-center gap-2">
                   <input type="radio" name="pay" checked={pay === "pack"} onChange={() => setPay("pack")} required />
-                  Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left{packLeft <= 0 ? " — ok to book, settle up via Venmo" : ""})</span>
+                  Class pack <span className="text-ea-espresso/60">({packLeft} class{packLeft === 1 ? "" : "es"} left{packLeft <= 0 ? " — ok to book, settle up via Venmo" : ""}{multi ? " — tip: pay $15 instead and save your pack" : ""})</span>
                 </label>
               )}
               {isJam && memberUntil != null && memberUntil >= cls.date && (
@@ -642,11 +654,11 @@ ${cls.pay_note}` : ""}
               )}
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "venmo"} onChange={() => setPay("venmo")} required />
-                {isJam ? "$10 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : "Single class — Venmo"}
+                {isJam ? "$10 — Venmo" : isDon ? `$${cls.price ?? 12} suggested donation — Venmo` : multi ? "$15 (extra class today) — Venmo" : "Single class — Venmo"}
               </label>
               <label className="flex items-center gap-2">
                 <input type="radio" name="pay" checked={pay === "cash"} onChange={() => setPay("cash")} required />
-                {isJam ? "$10 — cash in studio" : isDon ? `$${cls.price ?? 12} suggested donation — cash in studio` : "Single class — cash in studio"}
+                {isJam ? "$10 — cash in studio" : isDon ? `$${cls.price ?? 12} suggested donation — cash in studio` : multi ? "$15 (extra class today) — cash in studio" : "Single class — cash in studio"}
               </label>
             </fieldset>
             {msg && <p className="text-sm text-red-700">{msg}</p>}

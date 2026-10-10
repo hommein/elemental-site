@@ -1,5 +1,5 @@
 import { ptEpoch } from "./bookings";
-import { getUser, memberFor } from "../_lib";
+import { getUser, memberFor, signupPrice } from "../_lib";
 interface Env { DB: D1Database; SESSION_SECRET: string }
 
 const METHODS = ["pack", "venmo", "cash", "external", "membership"];
@@ -40,6 +40,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   let packId: number | null = null;
   let packUid: number | null = null;
   let packLeft: number | null = null;
+  let price: number | null = null;
   if (pay_method === "membership") {
     if (cls.title !== "Community Jam") return err("Memberships cover open gym and Community Jam only", 400);
     if (!(await memberFor(env, email.trim().toLowerCase(), date)))
@@ -67,8 +68,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   try {
-    await env.DB.prepare("INSERT INTO signups(class_id,date,name,email,pay_method,pack_id) VALUES(?,?,?,?,?,?)")
-      .bind(class_id, date, name.trim().slice(0, 80), em, pay_method, packId).run();
+    price = await signupPrice(env.DB, em, date, cls);
+    await env.DB.prepare("INSERT INTO signups(class_id,date,name,email,pay_method,pack_id,price) VALUES(?,?,?,?,?,?,?)")
+      .bind(class_id, date, name.trim().slice(0, 80), em, pay_method, packId, price).run();
   } catch (e: any) {
     if (String(e).includes("UNIQUE")) return err("You are already signed up for this class", 409);
     throw e;
@@ -81,7 +83,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     const bal = await env.DB.prepare("SELECT COALESCE(SUM(remaining),0) b FROM classpacks WHERE user_id=?1").bind(packUid).first<any>();
     packLeft = Number(bal?.b ?? 0);
   }
-  return new Response(JSON.stringify({ ok: true, spots_left: cls.capacity - cnt.n - 1, pack_remaining: packLeft }),
+  return new Response(JSON.stringify({ ok: true, spots_left: cls.capacity - cnt.n - 1, pack_remaining: packLeft, price }),
     { headers: { "content-type": "application/json", "cache-control": "no-store" } });
 };
 

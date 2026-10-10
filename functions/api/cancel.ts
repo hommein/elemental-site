@@ -1,4 +1,5 @@
 import { ptEpoch, CUTOFF_MS } from "./bookings";
+import { repriceDay } from "../_lib";
 interface Env { DB: D1Database }
 const json = (o: any, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 
@@ -18,5 +19,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   await env.DB.prepare(`DELETE FROM ${kind === "class" ? "signups" : "opengym"} WHERE id = ?1`).bind(id).run();
   if (kind === "class" && row.pack_id)
     await env.DB.prepare("UPDATE classpacks SET remaining = remaining + 1 WHERE id = ?1").bind(row.pack_id).run();
+  if (kind === "class") await repriceDay(env.DB, email, row.date);
   return json({ ok: true });
 };

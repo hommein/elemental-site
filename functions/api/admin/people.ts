@@ -11,7 +11,7 @@ async function unpaidItems(D: D1Database, email: string) {
   const em = email.toLowerCase();
   const og = (await D.prepare("SELECT id,date,time FROM opengym WHERE lower(email)=?1 AND paid=0 AND (pay_method IS NULL OR pay_method NOT IN ('pack','membership','waived'))").bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "opengym", title: "Open Gym" }));
-  const cl = (await D.prepare(`SELECT s.id, s.date, c.time, c.title, c.category, c.price FROM signups s JOIN classes c ON c.id=s.class_id
+  const cl = (await D.prepare(`SELECT s.id, s.date, c.time, c.title, c.category, COALESCE(s.price, c.price) AS price FROM signups s JOIN classes c ON c.id=s.class_id
     WHERE lower(s.email)=?1 AND s.paid=0 AND (s.pay_method IS NULL OR s.pay_method NOT IN ('pack','external','membership','waived')) AND c.pricing != 'external'`).bind(em)
     .all()).results.map((r: any) => ({ ...r, kind: "signups" }));
   return [...og, ...cl].map((r: any) => ({ ...r, price: r.price ?? PRICE(r) }))
@@ -35,7 +35,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ env, request }) => 
     (SELECT max(end_date) FROM memberships m WHERE m.user_id=users.id) AS member_until
     FROM users ORDER BY name`).all()).results as any[];
   const su = (await env.DB.prepare(
-    `SELECT s.id, s.paid, s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price, c.pricing FROM signups s JOIN classes c ON c.id=s.class_id
+    `SELECT s.id, s.paid, s.email, s.date, s.pay_method, c.title, c.time, c.category, c.instructor, COALESCE(s.price, c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price, c.pricing FROM signups s JOIN classes c ON c.id=s.class_id
      WHERE s.date >= ?1 AND s.date < ?2 ORDER BY s.date, c.time`).bind(week, weekEnd).all()).results as any[];
   const og = (await env.DB.prepare(
     "SELECT id, paid, email, date, time, pay_method, 15 AS price FROM opengym WHERE date >= ?1 AND date < ?2").bind(week, weekEnd).all()).results as any[];
@@ -69,7 +69,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ env, request }) =>
     const tbl = b.kind === "opengym" ? "opengym" : "signups";
     const row: any = tbl === "opengym"
       ? await D.prepare("SELECT id, paid, email, 15 AS price, pay_method FROM opengym WHERE id=?1").bind(Number(b.id)).first()
-      : await D.prepare(`SELECT s.id, s.paid, s.email, s.pay_method, c.pricing, COALESCE(c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price
+      : await D.prepare(`SELECT s.id, s.paid, s.email, s.pay_method, c.pricing, COALESCE(s.price, c.price, CASE WHEN c.title='Community Jam' THEN 10 WHEN c.category IN ('flex','flow') THEN 12 ELSE 30 END) AS price
            FROM signups s JOIN classes c ON c.id=s.class_id WHERE s.id=?1`).bind(Number(b.id)).first();
     if (!row) return json({ error: "Booking not found" }, 404);
     const billable = row.pay_method !== "pack" && row.pay_method !== "external" && row.pay_method !== "membership" && row.pay_method !== "waived" && row.pricing !== "external";
