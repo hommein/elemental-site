@@ -904,6 +904,59 @@ const fromDraft = (d: PDraft, active: number) => ({ section: d.section, title: d
   when_text: d.when_text || null, where_text: d.where_text || null, img: d.img || null,
   body: textToBody(d.bodyText), links: textToLinks(d.linksText) || null, sort_order: Number(d.sort_order) || 0, active });
 
+// shrink big photos in the browser (max 1600px, JPEG) so uploads stay small, then POST to /api/admin/upload
+async function shrinkImage(f: File): Promise<Blob> {
+  if (!f.type.startsWith("image/") || f.type === "image/gif" || f.size < 400_000) return f;
+  try {
+    const bmp = await createImageBitmap(f);
+    const MAX = 1600, sc = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+    if (sc === 1 && f.size < 1_500_000) return f;
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc);
+    c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+    const keepPng = f.type === "image/png" && f.size < 1_500_000;
+    const blob: Blob | null = await new Promise(res => c.toBlob(res, keepPng ? "image/png" : "image/jpeg", 0.85));
+    return blob || f;
+  } catch { return f; }
+}
+async function uploadFile(f: File): Promise<string> {
+  const blob = await shrinkImage(f);
+  const name = blob === f ? f.name : f.name.replace(/\.[^.]+$/, "") + (blob.type === "image/png" ? ".png" : ".jpg");
+  const fd = new FormData(); fd.append("file", new File([blob], name, { type: blob.type || f.type }));
+  const r = await fetch("/api/admin/upload", { method: "POST", body: fd });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "Upload failed");
+  return j.url as string;
+}
+const ImageField = ({ label, value, onChange, w }: { label: string; value: string; onChange: (v: string) => void; w?: string }) => {
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const inp = useRef<HTMLInputElement>(null);
+  async function pick(files: FileList | null) {
+    const f = files?.[0]; if (!f) return;
+    setBusy(true); setErr("");
+    try { onChange(await uploadFile(f)); } catch (e: any) { setErr(e.message || "Upload failed"); }
+    setBusy(false); if (inp.current) inp.current.value = "";
+  }
+  return (
+    <div className={"text-xs font-semibold text-ea-espresso/60 " + (w || "")}
+      onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); pick(e.dataTransfer.files); }}>
+      {label}
+      <div className="flex gap-2 mt-0.5 items-start">
+        {value ? <img src={value} alt="" className="w-14 h-14 rounded object-cover border border-ea-espresso/20 shrink-0" />
+          : <div className="w-14 h-14 rounded border border-dashed border-ea-espresso/30 shrink-0 grid place-items-center text-lg opacity-40">🖼</div>}
+        <div className="flex-1 min-w-0">
+          <div className="flex gap-1">
+            <button type="button" className="btn text-xs !px-2.5 !py-1 shrink-0" disabled={busy} onClick={() => inp.current?.click()}>{busy ? "Uploading…" : "Upload photo"}</button>
+            {value && <button type="button" className="btn btn--accent text-xs !px-2.5 !py-1 shrink-0" onClick={() => onChange("")}>Remove</button>}
+          </div>
+          <input value={value} onChange={e => onChange(e.target.value)} placeholder="or paste an image URL"
+            className="block w-full mt-1 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal text-ea-espresso" />
+          <div className="font-normal opacity-60 mt-0.5">{err ? <span className="text-red-700">{err}</span> : "Drag & drop works too. Big photos are shrunk automatically."}</div>
+        </div>
+      </div>
+      <input ref={inp} type="file" accept="image/*" className="hidden" onChange={e => pick(e.target.files)} />
+    </div>
+  );
+};
 const Field = ({ label, value, onChange, w }: { label: string; value: string; onChange: (v: string) => void; w?: string }) => (
   <label className={"block text-xs font-semibold text-ea-espresso/60 " + (w || "")}>
     {label}
@@ -923,7 +976,7 @@ const Editor = ({ d, set }: { d: PDraft; set: (patch: Partial<PDraft>) => void }
     <Field label="Date (YYYY-MM-DD, sets Past/Upcoming tag)" value={d.date} onChange={v => set({ date: v })} />
     <Field label="When (display text)" value={d.when_text} onChange={v => set({ when_text: v })} />
     <Field label="Where" value={d.where_text} onChange={v => set({ where_text: v })} />
-    <Field label="Image URL (or /events/file.jpg)" value={d.img} onChange={v => set({ img: v })} />
+    <ImageField label="Photo" value={d.img} onChange={v => set({ img: v })} />
     <Field label="Sort order (lower = higher on page)" value={d.sort_order} onChange={v => set({ sort_order: v })} />
     <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Body — paragraphs separated by blank lines
       <textarea value={d.bodyText} onChange={e => set({ bodyText: e.target.value })} rows={5}
@@ -1041,7 +1094,7 @@ const NewsEditor = ({ d, set }: { d: NDraft; set: (patch: Partial<NDraft>) => vo
       <input type="date" value={d.date} onChange={e => set({ date: e.target.value })}
         className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal text-ea-espresso" />
     </label>
-    <Field label="Photo URL (optional, e.g. /news/photo.jpg)" value={d.img} onChange={v => set({ img: v })} />
+    <ImageField label="Photo (optional)" value={d.img} onChange={v => set({ img: v })} />
     <label className="block text-xs font-semibold text-ea-espresso/60 sm:col-span-2">Post — paragraphs separated by blank lines
       <textarea value={d.bodyText} onChange={e => set({ bodyText: e.target.value })} rows={6}
         className="block w-full mt-0.5 rounded border border-ea-espresso/20 bg-white px-2 py-1 text-sm font-normal" />
