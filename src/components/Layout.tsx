@@ -32,12 +32,12 @@ export default function Layout() {
             <img src="/logo_brand.png" alt="Santa Barbara Elemental Aerial Arts" className="h-[92px] w-auto max-md:h-12" />
           </NavLink>
           {/* desktop nav */}
-          <nav className="hidden md:flex flex-wrap justify-center gap-x-5 gap-y-1">
+          <nav className="hidden md:flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
             {links.map((l) => (
               <NavLink key={l.to} to={l.to} end={l.to === "/"} className={linkCls}>{l.label}</NavLink>
             ))}
-            <div className="relative group">
-              <button type="button" className={`${linkCls({ isActive: moreActive })} bg-transparent border-0 p-0 m-0 cursor-pointer inline-flex items-center gap-1 font-[inherit] leading-[inherit]`}>
+            <div className="relative group flex items-center">
+              <button type="button" className={`${linkCls({ isActive: moreActive })} bg-transparent border-0 p-0 m-0 cursor-pointer inline-flex items-center gap-1 font-[inherit] leading-5 align-baseline`}>
                 More <span aria-hidden="true" className="text-xs">▾</span>
               </button>
               <div className="absolute left-1/2 -translate-x-1/2 top-full pt-3 hidden group-hover:block group-focus-within:block z-50">
