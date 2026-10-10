@@ -4,6 +4,8 @@ import Lightbox from "../components/Lightbox";
 
 type Post = { id: number; title: string; date: string; img?: string | null; body: string[]; links?: { label: string; url: string }[] | null };
 
+const GCAL = "https://calendar.google.com/calendar/embed?src=elementalaerialarts%40gmail.com&ctz=America%2FLos_Angeles";
+
 export default function News() {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [open, setOpen] = useState<Post | null>(null);
@@ -14,10 +16,13 @@ export default function News() {
   return (
     <>
       <PageHero title="Studio News">
-        Casual updates from the studio — schedule changes, new classes, and what we've been up to.
+        News, updates, and happenings from our weekly newsletter<br />
+        ☀️ Missed the newsletter? <a href="#posts" className="text-ea-paper underline">Catch up here</a><br />
+        ☀️ You can view all studio events on the{" "}
+        <a href={GCAL} target="_blank" rel="noreferrer" className="text-ea-paper underline">Google Calendar</a>
       </PageHero>
 
-      <section className="container !py-8">
+      <section id="posts" className="container !py-8">
         {posts === null && <p className="text-ea-espresso/50">Loading…</p>}
         {posts && posts.length === 0 && <p className="text-ea-espresso/50 text-center">No updates yet — check back soon!</p>}
         {posts && posts.length > 0 && (
