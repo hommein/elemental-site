@@ -32,7 +32,7 @@ export default function OpenGym() {
         <Q q="How do I reserve open time at EA?">
           <ul>
             <li>Go to the <Link to="/classes">class schedule</Link>, find the day you want, and use the "Book Open Gym" button at the bottom of that day. Up to 6 aerialists can share a block.</li>
-            <li>If a class is running in the main room, you are limited to the foyer points. If no class is running in the main room, you are welcome to any point.</li>
+            <li>If a class is running in the main room, you are limited to the points in the Foyer. If no class is running in the main room, you are welcome to any point.</li>
             <li>EA is a shared space with Selah Dance and other awesome auxiliary dance groups! Cross check studio availability on our <a href={GCAL} target="_blank" rel="noreferrer">Google Calendar</a>.</li>
             <li>Bring your own apparatus. If you need to borrow an apparatus, contact us at <Mail />.</li>
           </ul>
@@ -56,7 +56,7 @@ export default function OpenGym() {
           <p>Aerialists may be approved on a case by case basis. Contact us at <Mail />! We want to see you training ;)</p>
         </Q>
 
-        <Q q="What if I want to reserve the main room or foyer for my group/rehearsal/etc?">
+        <Q q="What if I want to reserve the main room or Foyer for my group/rehearsal/etc?">
           <p>We offer rentals for dance troupes, rehearsals, theater groups, private events, and more! Contact us at <Mail /> for more info!</p>
         </Q>
       </section>
